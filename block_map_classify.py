@@ -1,5 +1,6 @@
 from typing import Dict
 from validator import StandardValidator
+from parse_standard import HeaderInfo
 
 
 class BlockMapBlock:
@@ -50,8 +51,13 @@ class ParseEdidBlock(BlockMapBlock):
                 return {}
 
     def _parse_standard_block(self, block: bytes) -> Dict[str, str]:
-        validator = StandardValidator()
-        validator.header(block)
+        """解析標準區塊"""
+
+        # 驗證基礎項目
+        StandardValidator.validate_manager(block)
+
+        # 製造商名稱
+        HeaderInfo.parse_manager(block)
 
         return {}
 

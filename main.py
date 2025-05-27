@@ -36,7 +36,6 @@ def main():
     info = manager.monitor_read()
     block_map = BlockMapBlock()
     parse_edid = ParseEdidBlock()
-    compare = CheckSumValidator()
     raw_data = None  # bytes類型只能用optical，so that's why it's None by default
     standard_block = None
     cta_extension_block = None
@@ -64,18 +63,18 @@ def main():
 
         if standard_block is not None:
             parse_edid.parse(standard_block)
-            compare.check_sum(standard_block)
+            CheckSumValidator.check_sum(standard_block)
 
         if cta_extension_block is not None:
             parse_edid.parse(cta_extension_block)
-            compare.check_sum(cta_extension_block)
+            CheckSumValidator.check_sum(cta_extension_block)
 
         if display_id_block is not None:
             parse_edid.parse(display_id_block)
-            compare.check_sum(display_id_block)
+            CheckSumValidator.check_sum(display_id_block)
 
         # 比對擴展數
-        compare.extension_num(raw_data)
+        CheckSumValidator.extension_num(raw_data)
 
         """每次結束解析時,將raw_data拋出來"""
         print(format_bytes(raw_data))
