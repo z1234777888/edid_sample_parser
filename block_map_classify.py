@@ -1,6 +1,6 @@
 from typing import Dict
 from validator import StandardValidator
-from parse_standard import HeaderInfo
+from parse_standard import HeaderInfo, BasicDisplayParameters
 
 
 class BlockMapBlock:
@@ -56,9 +56,11 @@ class ParseEdidBlock(BlockMapBlock):
         # 驗證基礎項目
         StandardValidator.validate_manager(block)
 
-        # 製造商名稱
+        # 標頭解析
         HeaderInfo.parse_manager(block)
 
+        # Basic Display Parameters 解析
+        BasicDisplayParameters.parse_manager(block)
         return {}
 
     def _parse_cta_extension_block(self, block: bytes) -> Dict[str, str]:
