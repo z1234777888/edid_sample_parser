@@ -1,4 +1,7 @@
 from enum import IntEnum
+from vic_to_resolution import clock_to_formats
+
+ENGINEERING = False
 
 
 class HeaderParams:
@@ -74,19 +77,94 @@ class HeaderInfo:
         return f"{data[0]}.{data[1]}"
 
 
-class BasicDisplayParameters:
-    """解析Byte 20-24的參數"""
+class DTDParams:
+    """DTD或display descriptor參數"""
+
+    FIRST_DESCRIPTOR_ADDR = 0x36  # perferred timing 的位址
+    DESCRIPTOR_SIZE = 18  # 每個DTD或display descriptor的大小
+    EDID_BLOCK_SIZE = 128  # EDID的最大長度
+    perfered_timing = "Undefined"
+    timing_resolution = "Undefined"
+
+
+class ResolutionInfo:
 
     @staticmethod
     def parse_manager(edid_data: bytes):
-        """組合基本顯示器參數"""
-        print()
-        print(f"{'='*10}basic display parameters parse started{'='*10}")
+        pass
 
-        print(f"顯示器輸入類型")
-        MonitorInputType.parse_manager(edid_data)
 
-        print(f"{'='*10}basic display parameters parse completed{'='*10}")
+class DTDInfo:
+    @staticmethod
+    def parse_manager(block: bytes, offset: int = DTDParams.DESCRIPTOR_SIZE):
+        # 在base EDID處理perferred timing的解析
+        if block[:9] == b"\x00\xff\xff\xff\xff\xff\xff\x00":
+            DTDInfo.parse_perfered_timing(block)
+            offset += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+
+            print(f"時序解析度: {DTDParams.timing_resolution}")
+
+        # 最多4組
+        for _ in range(4):
+            # 如果下一組DTD的位址超過EDID的最大長度，就跳出迴圈
+            if offset + DTDParams.DESCRIPTOR_SIZE > DTDParams.EDID_BLOCK_SIZE:
+                break
+            DTDInfo.parse_timing_resolution(block, offset)
+            offset += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+
+            print(f"時序解析度: {DTDParams.timing_resolution}")
+
+    @staticmethod
+    def parse_perfered_timing(block: bytes):
+        """解析首選的時序，僅在base edid 的[0x36]開始的第一組18位元組成"""
+        DTDInfo.parse_timing_resolution(block, DTDParams.FIRST_DESCRIPTOR_ADDR)
+
+    @staticmethod
+    def parse_timing_resolution(
+        block: bytes, offset: int = DTDParams.FIRST_DESCRIPTOR_ADDR
+    ):
+        """解析時序解析度，暫時只解析必要的內容"""
+        _clock = block[offset + 1] << 8 | block[offset]
+        pixel_clock = round(_clock / 100.0, 2)  # MHz
+        # 水平參數
+        h_active = ((block[offset + 4] & 0xF0) << 4) | block[offset + 2]
+        # 垂直參數
+        v_active = ((block[offset + 7] & 0xF0) << 4) | block[offset + 5]
+        freq = get_freq(h_active, v_active, clock_to_formats)
+        if offset == DTDParams.FIRST_DESCRIPTOR_ADDR:
+            DTDParams.perfered_timing = (
+                f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
+            )
+        else:
+            DTDParams.timing_resolution = (
+                f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
+            )
+
+
+def get_freq(
+    h_active: int, v_active: int, clock_to_formats: list[tuple[int, int, int, float]]
+) -> int:
+    return next(
+        (freq for h, v, freq, _ in clock_to_formats if h == h_active and v == v_active),
+        60,
+    )
+
+
+class BasicDisplayParameters:
+    """解析Byte 20-24的參數"""
+
+    if ENGINEERING:
+
+        @staticmethod
+        def parse_manager(edid_data: bytes):
+            """組合基本顯示器參數"""
+            print()
+            print(f"{'='*10}basic display parameters parse started{'='*10}")
+
+            print(f"顯示器輸入類型")
+            MonitorInputType.parse_manager(edid_data)
+
+            print(f"{'='*10}basic display parameters parse completed{'='*10}")
 
 
 class InputTypeParams:
@@ -267,23 +345,3 @@ class ParseAnalogParams:
             if serrations
             else "Serration on the Vertical Sync is not supported"
         )
-
-
-class MonitorSize:
-    """顯示器尺寸資訊"""
-
-    @staticmethod
-    def parse_manager(edid_data: bytes):
-        """組合顯示器尺寸資訊"""
-
-        horizontal = edid_data[21]  # 位址15h
-        vertical = edid_data[22]  # 位址16h
-
-        if horizontal == 0 and vertical == 0:
-            MonitorSize._parse_undefined_size()
-        elif vertical == 0:
-            MonitorSize._parse_landscape_ratio(horizontal)
-        elif horizontal == 0:
-            MonitorSize._parse_portrait_ratio(vertical)
-        else:
-            MonitorSize._parse_physical_size(horizontal, vertical)

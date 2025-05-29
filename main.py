@@ -1,6 +1,6 @@
 from monitor_info import MonitorManager
 from block_map_classify import BlockMapBlock, ParseEdidBlock
-from validator import CheckSumValidator
+from parse_standard import ENGINEERING
 from typing import List
 from enum import IntEnum
 
@@ -28,6 +28,47 @@ class BlockType(IntEnum):
     CTA_EXTENSION = 1
     DISPLAY_ID = 2
     BLOCK_MAP = 3
+
+
+def extension_num(edid_data: bytes) -> bool:
+    """檢查擴展數是否正確，須放置全部的edid，而非單一block"""
+    # 計算總共有幾個完整的區塊
+    total_blocks = len(edid_data) // 128
+
+    # 取得擴充數量資料
+    expected_extensions = edid_data[126]
+    actual_extensions = total_blocks - 1
+    # 儲存結果
+    if actual_extensions == expected_extensions:
+        print("擴展數正確")
+        return True
+    else:
+        print("擴展數錯誤")
+        print("should be", expected_extensions)
+        print("but got", actual_extensions)
+        return False
+
+
+def check_sum(block: bytes) -> bool:
+
+    # 取得預期的checksum (最後一個位元組)，並格式化為兩位十六進制
+    expected_checksum = f"{block[-1]:02X}"
+
+    # 計算前127個位元組的總和
+    byte_sum = sum(block[:-1]) & 0xFF
+
+    # 計算checksum (0 減去總和的結果)，並格式化為兩位十六進制
+    actual_checksum = f"{(0 - byte_sum) & 0xFF:02X}"
+
+    # 比較預期的checksum 和實際的checksum
+    if expected_checksum == actual_checksum:
+        print("checksum 正確")
+        return True
+    else:
+        print("checksum 錯誤")
+        print("should be", expected_checksum)
+        print("but got", actual_checksum)
+        return False
 
 
 def main():
@@ -63,24 +104,28 @@ def main():
 
         if standard_block is not None:
             parse_edid.parse(standard_block)
-            CheckSumValidator.check_sum(standard_block)
+            if ENGINEERING:
+                check_sum(standard_block)
 
         if cta_extension_block is not None:
             parse_edid.parse(cta_extension_block)
-            CheckSumValidator.check_sum(cta_extension_block)
+            if ENGINEERING:
+                check_sum(cta_extension_block)
 
         if display_id_block is not None:
             parse_edid.parse(display_id_block)
-            CheckSumValidator.check_sum(display_id_block)
+            if ENGINEERING:
+                check_sum(display_id_block)
 
         # 比對擴展數
-        CheckSumValidator.extension_num(raw_data)
+        if ENGINEERING:
+            extension_num(raw_data)
 
         """每次結束解析時,將raw_data拋出來"""
         print(format_bytes(raw_data))
         print()
 
-    print("\n程式執行完畢")
+    print("\n程式執行完畢，如果有遺漏的顯示器，請變更顯示模式後再試一次")
 
 
 if __name__ == "__main__":

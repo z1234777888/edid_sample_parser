@@ -1,6 +1,7 @@
 from typing import Dict
 from validator import StandardValidator
-from parse_standard import HeaderInfo, BasicDisplayParameters
+from parse_standard import ENGINEERING, HeaderInfo, BasicDisplayParameters, DTDInfo
+from parse_cta_extension import ParseCTATagCode
 
 
 class BlockMapBlock:
@@ -58,12 +59,21 @@ class ParseEdidBlock(BlockMapBlock):
 
         # 標頭解析
         HeaderInfo.parse_manager(block)
-
         # Basic Display Parameters 解析
-        BasicDisplayParameters.parse_manager(block)
+        if ENGINEERING:
+            BasicDisplayParameters.parse_manager(block)
+
+        # DTD 解析，只有CTA擴展區才需要額外宣告offset
+        DTDInfo.parse_manager(block)
         return {}
 
     def _parse_cta_extension_block(self, block: bytes) -> Dict[str, str]:
+        """解析CTA擴展區塊"""
+        # 先解析tag code
+        dtd_offset = block[2]
+        ParseCTATagCode.parse_manager(block)
+        # DTD 解析，只有CTA擴展區才需要額外宣告offset
+        DTDInfo.parse_manager(block, offset=dtd_offset)
         return {}
 
     def _parse_display_id_block(self, block: bytes) -> Dict[str, str]:
