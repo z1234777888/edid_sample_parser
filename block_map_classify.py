@@ -1,6 +1,12 @@
 from typing import Dict
 from validator import StandardValidator
-from parse_standard import ENGINEERING, HeaderInfo, BasicDisplayParameters, DTDInfo
+from parse_standard import (
+    ENGINEERING,
+    HeaderInfo,
+    BasicDisplayParameters,
+    DTDInfo,
+    TimingInfo,
+)
 from parse_cta_extension import ParseCTATagCode
 
 
@@ -63,6 +69,7 @@ class ParseEdidBlock(BlockMapBlock):
         if ENGINEERING:
             BasicDisplayParameters.parse_manager(block)
 
+        TimingInfo.parse_manager(block)
         # DTD 解析，只有CTA擴展區才需要額外宣告offset
         DTDInfo.parse_manager(block)
         return {}

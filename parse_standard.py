@@ -77,6 +77,217 @@ class HeaderInfo:
         return f"{data[0]}.{data[1]}"
 
 
+class EstablishedTimingInfo:
+
+    @staticmethod
+    def _get_timing1(timing_index: int) -> dict[str, str]:
+        timing_configs = {
+            0: {"resolution": "800x600", "refresh_rate": "60", "source": "VESA"},
+            1: {"resolution": "800x600", "refresh_rate": "56", "source": "VESA"},
+            2: {"resolution": "640x480", "refresh_rate": "75", "source": "VESA"},
+            3: {"resolution": "640x480", "refresh_rate": "72", "source": "VESA"},
+            4: {
+                "resolution": "640x480",
+                "refresh_rate": "67",
+                "source": "Apple, Mac II",
+            },
+            5: {"resolution": "640x480", "refresh_rate": "60", "source": "IBM, VGA"},
+            6: {"resolution": "720x400", "refresh_rate": "88", "source": "IBM, XGA2"},
+            7: {"resolution": "720x400", "refresh_rate": "70", "source": "IBM, VGA"},
+        }
+
+        return timing_configs.get(
+            timing_index,
+            {
+                "resolution": "Undefined",
+                "refresh_rate": "Undefined",
+                "source": "Undefined",
+            },
+        )
+
+    @staticmethod
+    def _get_timing2(timing_index: int) -> dict[str, str]:
+        timing_configs = {
+            0: {
+                "resolution": "1280x1024",
+                "refresh_rate": "75",
+                "source": "VESA",
+            },
+            1: {
+                "resolution": "1024x768",
+                "refresh_rate": "75",
+                "source": "VESA",
+            },
+            2: {
+                "resolution": "1024x768",
+                "refresh_rate": "70",
+                "source": "VESA",
+            },
+            3: {
+                "resolution": "1024x768",
+                "refresh_rate": "60",
+                "source": "VESA",
+            },
+            4: {
+                "resolution": "1024x768",
+                "refresh_rate": "87",
+                "source": "IBM",
+                "note": "Interlaced",
+            },
+            5: {
+                "resolution": "832x624",
+                "refresh_rate": "75",
+                "source": "Apple, Mac II",
+            },
+            6: {
+                "resolution": "800x600",
+                "refresh_rate": "75",
+                "source": "VESA",
+            },
+            7: {
+                "resolution": "800x600",
+                "refresh_rate": "72",
+                "source": "VESA",
+            },
+        }
+
+        return timing_configs.get(
+            timing_index,
+            {
+                "resolution": "Undefined",
+                "refresh_rate": "Undefined",
+                "source": "Undefined",
+            },
+        )
+
+    @staticmethod
+    def timing1(block: bytes):
+        timing_byte = block[35]
+        if timing_byte:
+            print("第一組標準時序:")
+            for i in range(8):
+                if timing_byte & (1 << i):
+                    info = EstablishedTimingInfo._get_timing1(i)
+                    print(
+                        f"{info["resolution"]} @ {info["refresh_rate"]}Hz ({info["source"]})"
+                    )
+
+    @staticmethod
+    def timing2(block: bytes):
+        timing_byte = block[36]
+        if timing_byte:
+            print("第二組標準時序:")
+            for i in range(8):
+                if timing_byte & (1 << i):
+                    info = EstablishedTimingInfo._get_timing2(i)
+                    print(
+                        f"{info["resolution"]} @ {info["refresh_rate"]}Hz ({info["source"]})"
+                    )
+
+
+class TimingInfo:
+
+    @staticmethod
+    def parse_manager(block: bytes):
+        StandardTiming = StandardTimingInfo()  # 因為用了實例化所以要先宣告
+        """組合標準時序資訊"""
+        print()
+        print(f"{'='*10}established timing parse started{'='*10}")
+
+        EstablishedTimingInfo.timing1(block)
+        EstablishedTimingInfo.timing2(block)
+
+        print(f"{'='*10}established timing parse completed{'='*10}")
+
+        print()
+        print(f"{'='*10}standard timing parse started{'='*10}")
+        StandardTiming.parse_manager(block)
+
+        print(f"{'='*10}standard timing parse completed{'='*10}")
+
+
+class StandardTimingInfo:
+    """用於解析 EDID 中的 Standard Timing 資訊 (Byte 38-53)
+
+    每組 Standard Timing 使用 2 bytes 來描述一個顯示模式：
+    - 第一個 byte: 水平解析度 (計算方式為: (value + 31) * 8)
+    - 第二個 byte:
+        - bit 7-6: 寬高比 (16:10, 4:3, 5:4, 16:9)
+        - bit 5-0: 更新率 (計算方式為: value + 60)
+    """
+
+    def __init__(self):
+        # 定義常數
+        self._START_BYTE = 38  # Standard Timing 開始位置
+        self._BYTES_PER_TIMING = 2  # 每組 Timing 使用的 bytes 數
+
+        # 定義寬高比對照表
+        self._ASPECT_RATIOS = {
+            0b00: "16:10",
+            0b01: "4:3",
+            0b10: "5:4",
+            0b11: "16:9",
+        }
+
+    def parse_manager(self, block: bytes):
+
+        for i in range(8):
+            start_index = self._START_BYTE + (i * self._BYTES_PER_TIMING)
+            info = self._parse_single_timing(block[start_index], block[start_index + 1])
+            if info["h_res"] == "Undefined":
+                continue
+            print(
+                f"{info['h_res']}x{info['v_res']} @ {info['refresh_rate']}Hz ({info['aspect_ratio']})"
+            )
+
+    def _calculate_horizontal_resolution(self, value: int) -> int:
+        """計算水平解析度"""
+        if value == 0x01:  # 未使用的欄位
+            return 0
+        return (value + 31) * 8
+
+    def _calculate_vertical_resolution(self, h_res: int, aspect_ratio: str) -> int:
+        """根據水平解析度和寬高比計算垂直解析度"""
+        if h_res == 0:
+            return 0
+
+        width, height = map(int, aspect_ratio.split(":"))
+        return int(h_res * height / width)
+
+    def _parse_single_timing(self, byte1: int, byte2: int) -> dict[str, str]:
+        """解析單組 Standard Timing"""
+        # 檢查是否為未使用的欄位
+        if byte1 == 0x01 and byte2 == 0x01:
+            return {
+                "h_res": "Undefined",
+                "v_res": "Undefined",
+                "refresh_rate": "Undefined",
+                "aspect_ratio": "Undefined",
+            }
+
+        # 解析水平解析度
+        h_res = self._calculate_horizontal_resolution(byte1)
+
+        # 解析寬高比
+        aspect_ratio_bits = (byte2 >> 6) & 0b11
+        aspect_ratio = self._ASPECT_RATIOS[aspect_ratio_bits]
+
+        # 計算垂直解析度
+        v_res = self._calculate_vertical_resolution(h_res, aspect_ratio)
+
+        # 解析更新率
+        refresh_rate = (byte2 & 0b111111) + 60
+        h_res = f"{h_res}"
+        v_res = f"{v_res}"
+        refresh_rate = f"{refresh_rate}"
+        return {
+            "h_res": h_res,
+            "v_res": v_res,
+            "refresh_rate": refresh_rate,
+            "aspect_ratio": aspect_ratio,
+        }
+
+
 class DTDParams:
     """DTD或display descriptor參數"""
 
@@ -85,34 +296,58 @@ class DTDParams:
     EDID_BLOCK_SIZE = 128  # EDID的最大長度
     perfered_timing = "Undefined"
     timing_resolution = "Undefined"
-
-
-class ResolutionInfo:
-
-    @staticmethod
-    def parse_manager(edid_data: bytes):
-        pass
+    DESCRIPTOR_TAGS = {
+        0xFF: "display_serial_number",
+        0xFE: "ascii_string",
+        0xFD: "display_range_limits",
+        0xFC: "display_product_name",
+        0xFB: "color_point_data",
+        0xFA: "standard_timing",
+        0xF9: "dcm_data",
+        0xF8: "cvt_timing",
+        0xF7: "established_timings_3",
+        0x10: "dummy_descriptor",
+    }
 
 
 class DTDInfo:
     @staticmethod
-    def parse_manager(block: bytes, offset: int = DTDParams.DESCRIPTOR_SIZE):
+    def parse_manager(
+        block: bytes,
+        start_addr: int = DTDParams.FIRST_DESCRIPTOR_ADDR,
+        offset: int = DTDParams.DESCRIPTOR_SIZE,
+    ):
+        dtd_len = 4
+        current_addr = start_addr  # 當前的DTD位址
         # 在base EDID處理perferred timing的解析
-        if block[:9] == b"\x00\xff\xff\xff\xff\xff\xff\x00":
+        if block[:8] == bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]):
             DTDInfo.parse_perfered_timing(block)
-            offset += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+            current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+            print(f"首選時序解析度: {DTDParams.perfered_timing}")
+            dtd_len = 3
 
-            print(f"時序解析度: {DTDParams.timing_resolution}")
-
-        # 最多4組
-        for _ in range(4):
+        # 最多3組
+        for _ in range(dtd_len):
             # 如果下一組DTD的位址超過EDID的最大長度，就跳出迴圈
             if offset + DTDParams.DESCRIPTOR_SIZE > DTDParams.EDID_BLOCK_SIZE:
                 break
-            DTDInfo.parse_timing_resolution(block, offset)
-            offset += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+            is_display_descriptor = (
+                block[current_addr] == 0 and block[current_addr + 1] == 0
+            )
 
-            print(f"時序解析度: {DTDParams.timing_resolution}")
+            if is_display_descriptor:
+                DTDInfo.parse_display_descriptor(block, current_addr)
+            else:
+                DTDInfo.parse_timing_resolution(block, current_addr)
+                print(f"時序解析度: {DTDParams.timing_resolution}")
+            current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+
+    @staticmethod
+    def parse_display_descriptor(block: bytes, offset: int):
+
+        tag = block[offset + 3]
+        descriptor_type = DTDParams.DESCRIPTOR_TAGS.get(tag, "reserved")
+        print(f"型態代碼{descriptor_type}")
 
     @staticmethod
     def parse_perfered_timing(block: bytes):
@@ -130,7 +365,7 @@ class DTDInfo:
         h_active = ((block[offset + 4] & 0xF0) << 4) | block[offset + 2]
         # 垂直參數
         v_active = ((block[offset + 7] & 0xF0) << 4) | block[offset + 5]
-        freq = get_freq(h_active, v_active, clock_to_formats)
+        freq = get_freq(h_active, v_active, pixel_clock, clock_to_formats)
         if offset == DTDParams.FIRST_DESCRIPTOR_ADDR:
             DTDParams.perfered_timing = (
                 f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
@@ -142,12 +377,23 @@ class DTDInfo:
 
 
 def get_freq(
-    h_active: int, v_active: int, clock_to_formats: list[tuple[int, int, int, float]]
+    h_active: int,
+    v_active: int,
+    pixel_clock: float,
+    clock_to_formats: list[tuple[int, int, int, float]],
 ) -> int:
-    return next(
-        (freq for h, v, freq, _ in clock_to_formats if h == h_active and v == v_active),
-        60,
-    )
+
+    matching_freqs = [
+        (freq, fourth_param)
+        for h, v, freq, fourth_param in clock_to_formats
+        if h == h_active and v == v_active and fourth_param == pixel_clock
+    ]
+
+    if not matching_freqs:
+        return 60
+
+    # 找出最大的 (fourth_param, freq) 組合
+    return max(matching_freqs, key=lambda x: (x[1], x[0]))[0]
 
 
 class BasicDisplayParameters:
