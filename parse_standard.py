@@ -319,10 +319,14 @@ class DTDInfo:
     ):
         dtd_len = 4
         current_addr = start_addr  # 當前的DTD位址
+
+        print()
+        print(f"{'='*10}DTD or Display Descriptor parse started{'='*10}")
         # 在base EDID處理perferred timing的解析
         if block[:8] == bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]):
             DTDInfo.parse_perfered_timing(block)
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+
             print(f"首選時序解析度: {DTDParams.perfered_timing}")
             dtd_len = 3
 
@@ -342,22 +346,45 @@ class DTDInfo:
                 print(f"時序解析度: {DTDParams.timing_resolution}")
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
 
+        print(f"{'='*10}DTD or Display Descriptor parse completed{'='*10}")
+
     @staticmethod
     def parse_display_descriptor(block: bytes, offset: int):
 
         tag = block[offset + 3]
         descriptor_type = DTDParams.DESCRIPTOR_TAGS.get(tag, "reserved")
-        print(f"型態代碼{descriptor_type}")
+        # print(f"型態代碼{descriptor_type}")
+        decriptor_data = block[offset + 5 : offset + DTDParams.DESCRIPTOR_SIZE]
+        max_pixel_clock = block[offset + 9] * 10  # MHz
+        h_active, v_active = DTDInfo.parse_perfered_timing(block)
+        freq = get_freq(
+            h_active, v_active, max_pixel_clock, clock_to_formats
+        )  # 計算頻率
+
+        if descriptor_type == "display_range_limits":
+            print(f"最大垂直更新率: {block[offset + 6]} Hz")
+            print(
+                f"最大時序解析度: {h_active}x{v_active} @{freq}Hz {max_pixel_clock}MHz"
+            )
+        elif descriptor_type == "display_serial_number":
+            print(f"序列號碼: {decriptor_data.decode("utf-8").strip()}")
+        elif descriptor_type == "ascii_string":
+            print(f"文字敘述: {decriptor_data.decode("utf-8").strip()}")
+        elif descriptor_type == "display_product_name":
+            print(f"產品名稱: {decriptor_data.decode("utf-8").strip()}")
+        else:
+            print(f"此描述尚未解析: {descriptor_type}")
 
     @staticmethod
-    def parse_perfered_timing(block: bytes):
+    def parse_perfered_timing(block: bytes) -> tuple[int, int]:
         """解析首選的時序，僅在base edid 的[0x36]開始的第一組18位元組成"""
-        DTDInfo.parse_timing_resolution(block, DTDParams.FIRST_DESCRIPTOR_ADDR)
+        h, v = DTDInfo.parse_timing_resolution(block)
+        return h, v
 
     @staticmethod
     def parse_timing_resolution(
         block: bytes, offset: int = DTDParams.FIRST_DESCRIPTOR_ADDR
-    ):
+    ) -> tuple[int, int]:
         """解析時序解析度，暫時只解析必要的內容"""
         _clock = block[offset + 1] << 8 | block[offset]
         pixel_clock = round(_clock / 100.0, 2)  # MHz
@@ -374,6 +401,7 @@ class DTDInfo:
             DTDParams.timing_resolution = (
                 f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
             )
+        return h_active, v_active
 
 
 def get_freq(
@@ -386,7 +414,7 @@ def get_freq(
     matching_freqs = [
         (freq, fourth_param)
         for h, v, freq, fourth_param in clock_to_formats
-        if h == h_active and v == v_active and fourth_param == pixel_clock
+        if h == h_active and v == v_active and fourth_param <= pixel_clock
     ]
 
     if not matching_freqs:
