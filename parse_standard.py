@@ -317,9 +317,10 @@ class DTDInfo:
         start_addr: int = DTDParams.FIRST_DESCRIPTOR_ADDR,
         offset: int = DTDParams.DESCRIPTOR_SIZE,
     ):
-        dtd_len = 4
         current_addr = start_addr  # 當前的DTD位址
-
+        dtd_len = (
+            DTDParams.EDID_BLOCK_SIZE - current_addr
+        ) // DTDParams.DESCRIPTOR_SIZE
         print()
         print(f"{'='*10}DTD or Display Descriptor parse started{'='*10}")
         # 在base EDID處理perferred timing的解析
@@ -362,18 +363,17 @@ class DTDInfo:
         )  # 計算頻率
 
         if descriptor_type == "display_range_limits":
-            print(f"最大垂直更新率: {block[offset + 6]} Hz")
             print(
                 f"最大時序解析度: {h_active}x{v_active} @{freq}Hz {max_pixel_clock}MHz"
             )
-        elif descriptor_type == "display_serial_number":
+            print(f"最大垂直更新率: {block[offset + 6]} Hz")
+
+        if descriptor_type == "display_serial_number":
             print(f"序列號碼: {decriptor_data.decode("utf-8").strip()}")
-        elif descriptor_type == "ascii_string":
+        if descriptor_type == "ascii_string":
             print(f"文字敘述: {decriptor_data.decode("utf-8").strip()}")
-        elif descriptor_type == "display_product_name":
+        if descriptor_type == "display_product_name":
             print(f"產品名稱: {decriptor_data.decode("utf-8").strip()}")
-        else:
-            print(f"此描述尚未解析: {descriptor_type}")
 
     @staticmethod
     def parse_perfered_timing(block: bytes) -> tuple[int, int]:
@@ -393,6 +393,9 @@ class DTDInfo:
         # 垂直參數
         v_active = ((block[offset + 7] & 0xF0) << 4) | block[offset + 5]
         freq = get_freq(h_active, v_active, pixel_clock, clock_to_formats)
+        if freq == 0:  # 如果找不到頻率，改用RID試試
+            get_freq(h_active, v_active, pixel_clock, clock_to_formats)
+
         if offset == DTDParams.FIRST_DESCRIPTOR_ADDR:
             DTDParams.perfered_timing = (
                 f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
@@ -418,7 +421,7 @@ def get_freq(
     ]
 
     if not matching_freqs:
-        return 60
+        return 0
 
     # 找出最大的 (fourth_param, freq) 組合
     return max(matching_freqs, key=lambda x: (x[1], x[0]))[0]
