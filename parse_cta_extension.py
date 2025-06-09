@@ -25,7 +25,7 @@ def separate_tag_code(block: bytes, offset: int) -> tuple[int, int]:
 header_offset = 1
 
 
-class SeparateCTATagCode:
+class ParseCTATagCode:
     """解析CTA Data Block的Tag Code，目前只解析video、speaker與audio"""
 
     @staticmethod
@@ -219,11 +219,10 @@ class VSDBParams:
     ycbcr_444_support: bool = False
     Resolution = {
         0: (1920, 1080),
-        1: (2560, 1080),
+        1: (2560, 1440),
         2: (3840, 2160),
         3: (7680, 4320),
         4: (10240, 4320),
-        5: (2560, 1440),
     }
     dc_bit = {
         0: "10",

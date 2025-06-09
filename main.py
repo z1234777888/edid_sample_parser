@@ -85,7 +85,7 @@ def main():
         print("未找到活耀顯示器資訊")
         return
 
-    print(f"偵測到 {len(info.active_monitors)} 個活躍顯示器\n")
+    print(f"偵測到 {len(info.active_monitors)} 個活躍顯示器")
 
     for index, monitor in enumerate(info.active_monitors, 1):
         raw_data = manager.display_monitor_info(index, monitor, info.registry_paths)
@@ -101,7 +101,8 @@ def main():
                 cta_extension_block = value
             elif key == BlockType.DISPLAY_ID:
                 display_id_block = value
-
+            elif key == BlockType.BLOCK_MAP:
+                pass
         if standard_block is not None:
             parse_edid.parse(standard_block)
             if ENGINEERING:
@@ -122,10 +123,10 @@ def main():
             extension_num(raw_data)
 
         """每次結束解析時,將raw_data拋出來"""
-        print(format_bytes(raw_data))
         print()
+        print(format_bytes(raw_data))
 
-    print("\n程式執行完畢，如果有遺漏的顯示器，請變更顯示模式後再試一次")
+    print("\n程式執行完畢，如果有遺漏的顯示器，請將顯示設定改為延伸模式後再試一次")
 
 
 if __name__ == "__main__":

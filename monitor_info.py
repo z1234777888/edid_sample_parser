@@ -142,6 +142,7 @@ class MonitorManager:
         monitor: Dict[str, str],
         registry_paths: List[Tuple[str, str]],
     ) -> Optional[bytes]:
+        print()
         print(f"{'='*32}第{index}個顯示器資訊{'='*32}")
         print(f"顯示器名稱: {monitor['name']}")
         print(f"顯示器型號: {monitor['model']}")

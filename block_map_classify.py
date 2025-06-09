@@ -7,9 +7,8 @@ from parse_standard import (
     DTDInfo,
     TimingInfo,
 )
-from parse_cta_extension import SeparateCTATagCode
-
-from test import test_block
+from parse_cta_extension import ParseCTATagCode
+from parse_displayid import ParseDisplayIDBlock
 
 
 class BlockMapBlock:
@@ -52,19 +51,22 @@ class ParseEdidBlock(BlockMapBlock):
                 """解析標準區塊"""
                 # 驗證基礎項目
                 StandardValidator.validate_manager(block)
-
+                print()
                 print("解析標準區塊")
                 return self._parse_standard_block(block)
             case self.CTA_TAG:
                 """解析CTA擴展區塊"""
+                print()
                 print("解析CTA擴展區塊")
                 return self._parse_cta_extension_block(block)
             case self.DISPLAY_TAG:
                 """解析Display ID區塊"""
+                print()
                 print("解析Display ID區塊")
                 return self._parse_display_id_block(block)
             case self.MAP_TAG:
                 """解析Block Map區塊"""
+                print()
                 print("跳過解析Block Map區塊")
                 return {}
             case _:
@@ -89,10 +91,11 @@ class ParseEdidBlock(BlockMapBlock):
         # 先解析tag code
         # block = test_block
         dtd_addr = block[2]
-        SeparateCTATagCode.parse_manager(block)
+        ParseCTATagCode.parse_manager(block)
         # DTD 解析，只有CTA擴展區才需要額外宣告offset
         DTDInfo.parse_manager(block, start_addr=dtd_addr)
         return {}
 
     def _parse_display_id_block(self, block: bytes) -> Dict[str, str]:
+        ParseDisplayIDBlock.parse_manager(block)
         return {}

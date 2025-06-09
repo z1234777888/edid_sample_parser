@@ -387,22 +387,31 @@ class DTDInfo:
     ) -> tuple[int, int]:
         """解析時序解析度，暫時只解析必要的內容"""
         _clock = block[offset + 1] << 8 | block[offset]
-        pixel_clock = round(_clock / 100.0, 2)  # MHz
+        pixel_clock = _clock / 100.0  # MHz
         # 水平參數
         h_active = ((block[offset + 4] & 0xF0) << 4) | block[offset + 2]
+        h_blanking = ((block[offset + 4] & 0x0F) << 8) | block[offset + 3]
+
         # 垂直參數
         v_active = ((block[offset + 7] & 0xF0) << 4) | block[offset + 5]
-        freq = get_freq(h_active, v_active, pixel_clock, clock_to_formats)
-        if freq == 0:  # 如果找不到頻率，改用RID試試
-            get_freq(h_active, v_active, pixel_clock, clock_to_formats)
+        v_blanking = ((block[offset + 7] & 0x0F) << 8) | block[offset + 6]
+
+        h_total = h_active + h_blanking
+        v_total = v_active + v_blanking
+        if h_total == 0:
+            h_total = 1
+        if v_total == 0:
+            v_total = 1
+        refresh_rate = pixel_clock * 1000000 / (h_total * v_total)
+        freq = int(round(refresh_rate, 0))
 
         if offset == DTDParams.FIRST_DESCRIPTOR_ADDR:
             DTDParams.perfered_timing = (
-                f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
+                f"{h_active}x{v_active} @{freq}Hz - {pixel_clock}MHz"
             )
         else:
             DTDParams.timing_resolution = (
-                f"{h_active}x{v_active} @{freq}Hz {pixel_clock}MHz"
+                f"{h_active}x{v_active} @{freq}Hz - {pixel_clock}MHz"
             )
         return h_active, v_active
 
@@ -419,6 +428,13 @@ def get_freq(
         for h, v, freq, fourth_param in clock_to_formats
         if h == h_active and v == v_active and fourth_param <= pixel_clock
     ]
+
+    if not matching_freqs:
+        matching_freqs = [
+            (freq, fourth_param)
+            for h, v, freq, fourth_param in clock_to_formats
+            if h == h_active and v <= v_active and fourth_param <= pixel_clock
+        ]
 
     if not matching_freqs:
         return 0
