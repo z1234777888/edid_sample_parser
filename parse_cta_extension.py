@@ -29,8 +29,9 @@ class ParseCTATagCode:
     """解析CTA Data Block的Tag Code，目前只解析video、speaker與audio"""
 
     @staticmethod
-    def parse_manager(block: bytes):
-
+    def parse_manager(block: bytes) -> list[dict[str, str]]:
+        info: dict[str, str] = {}
+        result: list[dict[str, str]] = []
         dtd_addr = block[2]
         current_offset = 4
         # 解析tag code直到dtd
@@ -46,21 +47,26 @@ class ParseCTATagCode:
             match tag_code:
                 case TagCode.AUDIO:
                     # print("音訊格式")
-                    ParseAudioTag.parse_manager(block, current_offset, length)
+                    info = ParseAudioTag.parse_manager(block, current_offset, length)
                 case TagCode.VIDEO:
                     # print("影像格式")
-                    ParseVideoTag.parse_manager(block, current_offset, length)
+                    info = ParseVideoTag.parse_manager(block, current_offset, length)
                 case TagCode.SPEAKER:
                     # print("聲道配置")
-                    ParseSpeakerBlock.parse_manager(block, current_offset, length)
+                    info = ParseSpeakerBlock.parse_manager(
+                        block, current_offset, length
+                    )
                 case TagCode.EXTENDED:
                     # print("跳過擴展格式")
-                    ParseExtendedTag.parse_manager(block, current_offset, length)
+                    info = ParseExtendedTag.parse_manager(block, current_offset, length)
                 case TagCode.VSDB:
-                    ParseVSDBBlock.parse_manager(block, current_offset, length)
+                    info = ParseVSDBBlock.parse_manager(block, current_offset, length)
                 case _:
                     pass
+            result.append(info)
             current_offset += length  # 更新offset
+
+        return result
 
 
 class YCbCr420CapParams:
@@ -71,7 +77,8 @@ class ParseYCbCr420CapabilityMap:
     """YCbCr 4:2:0 Capability Map Data Block"""
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> str:
+        result = ""
         print()
         print(f"{'='*10} YCbCr 4:2:0 Capability Map parse started {'='*10}")
         current_offset = offset + header_offset
@@ -81,8 +88,10 @@ class ParseYCbCr420CapabilityMap:
         ParseYCbCr420CapabilityMap._parse_video_formats(
             block, current_offset, end_offset, VideoParams.resolution
         )
-        print(f"支援YCbCr420的解析度: {", ".join(YCbCr420CapParams.resolution)}")
+        result = f"支援YCbCr420的解析度: {", ".join(YCbCr420CapParams.resolution)}"
+        print(result)
         print(f"{'='*10} YCbCr 4:2:0 Capability Map parse ended {'='*10}")
+        return result
 
     @staticmethod
     def _parse_video_formats(
@@ -112,17 +121,22 @@ class ParseExtendedTag:
     """解析CTA Extended Tag Code"""
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析Extended Tag Code"""
 
         tag_code = block[offset]
         name = identify_extended_tag(tag_code)
+        info = ""
         # print(f"Extended Tag Code: {name}")
 
         if name == "HDR Static Metadata Data Block":
-            ParseColorimetryBlock.parse_manager(block, offset, length)
+            info = ParseColorimetryBlock.parse_manager(block, offset, length)
+            return {name: info}
         elif name == "YCbCr 4:2:0 Capability Map Data Block":
-            ParseYCbCr420CapabilityMap.parse_manager(block, offset, length)
+            info = ParseYCbCr420CapabilityMap.parse_manager(block, offset, length)
+            return {name: info}
+        else:
+            return {name: info}
 
 
 class HDRParams:
@@ -137,7 +151,7 @@ class HDRParams:
 class ParseColorimetryBlock:
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> str:
         """HDR 支援度"""
         print()
         print(f"{'='*10} Colorimetry Data Block parse started {'='*10}")
@@ -148,9 +162,10 @@ class ParseColorimetryBlock:
         for bit_position in range(3):
             if tf_byte & (1 << bit_position):
                 HDRParams.support.append(HDRParams.code[bit_position])
-
-        print(f"HDR 支援度: {', '.join(HDRParams.support)}")
+        result = f"HDR 支援度: {', '.join(HDRParams.support)}"
+        print(result)
         print(f"{'='*10} Colorimetry Data Block parse completed {'='*10}")
+        return result
 
 
 def identify_extended_tag(tag_code: int) -> str:
@@ -233,8 +248,9 @@ class VSDBParams:
 
 class ParseVSDBBlock:
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析VSDB區塊"""
+        info: dict[str, str] = {}
         VSDBParams.ieee_id = (
             f"{block[offset] | block[offset + 1] << 8 | block[offset + 2] << 16:06x}"
         )
@@ -244,19 +260,28 @@ class ParseVSDBBlock:
             # 剩餘資料為廠商自定義內容
             vendor_data = block[offset + 3 : offset + length] if length > 3 else bytes()
             ParseVSDBBlock._parse_hdmi_vsdb(vendor_data)
-            print(f"CEC PA {VSDBParams.CEC_PA}")
-            print(f"支援解析度 {', '.join(VSDBParams.res_support)}")
-            print(f"位元深度 {', '.join(VSDBParams.color_depths)} bits")
+            info["CEC_PA"] = VSDBParams.CEC_PA
+            info["res_support"] = f"{', '.join(VSDBParams.res_support)}"
+            info["color_depths"] = f"{', '.join(VSDBParams.color_depths)} bits"
+
+            print(f"CEC PA {info["CEC_PA"]}")
+            print(f"支援解析度 {info["res_support"]}")
+            print(f"位元深度 {info["color_depths"] }")
+
             if VSDBParams.ycbcr_444_support:
                 print("支援  YCbCr 4:4:4 & RGB 4:4:4")
+                info["rgb_444_support"] = "支援  YCbCr 4:4:4 & RGB 4:4:4"
             else:
                 print("支援  RGB 4:4:4")
+                info["rgb_444_support"] = "支援  RGB 4:4:4"
 
             print(f"{'='*10} VSDB parse ended {'='*10}")
+            return info
         # else:
         #     print(
         #         f"未知的IEEE ID: {VSDBParams.ieee_id}, 目前只支援HDMI IEEE ID: {VSDBParams.HDMI_IEEE_ID:06x}"
         #     )
+        return info
 
     @staticmethod
     def _parse_hdmi_vsdb(vendor_data: bytes):
@@ -331,8 +356,9 @@ class AudioParams:
 class ParseAudioTag:
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析音訊格式的tag code"""
+        result: str = ""
         print()
         print(f"{'='*10} audio data block parse started {'='*10}")
         current_offset = offset
@@ -340,26 +366,26 @@ class ParseAudioTag:
 
             descriptor_data = block[current_offset : current_offset + length]
             # 解析 Audio Format Code 和 Max Channels
-            format = (descriptor_data[0] & 0x78) >> 3
+            code = (descriptor_data[0] & 0x78) >> 3
             max_channels = (descriptor_data[0] & 0x07) + 1
 
             # 解析支援的取樣率
             ParseAudioTag._parse_sampling_frequencies(descriptor_data)
 
-            AudioParams.audio_format = AudioParams.FORMAT_CODE[format]
+            AudioParams.audio_format = AudioParams.FORMAT_CODE[code]
 
             result = f"{AudioParams.audio_format:7} [{' '.join(map(str, AudioParams.supported_frequencies)) }]kHz, {max_channels} channels"
             # 解析位元深度
             if AudioParams.audio_format == "L-PCM":  # L-PCM
                 ParseAudioTag._parse_lpcm_bit_depths(descriptor_data)
                 result += f", [{' '.join(map(str,AudioParams.LPCM_bit_depths))}] bit"
-            elif format >= 2 and format <= 8:
+            elif code >= 2 and code <= 8:
                 AudioParams.bit_rate = f"{(descriptor_data[2] * 8)}kHz"
                 result += f", {AudioParams.bit_rate}"
-            elif format >= 9 and format <= 13:
+            elif code >= 9 and code <= 13:
                 AudioParams.audio_spec = f"{descriptor_data[2] }"
                 result += f", {AudioParams.audio_spec}"
-            elif format == 14:
+            elif code == 14:
                 if descriptor_data[2] & 0xF8:
                     AudioParams.wma_profile_code = f"profile error"
                 else:
@@ -369,6 +395,7 @@ class ParseAudioTag:
             current_offset += 3
 
         print(f"{'='*10} audio data block parse ended {'='*10}")
+        return {"descriptor": result}
 
     @staticmethod
     def _parse_sampling_frequencies(descriptor_data: bytes):
@@ -397,8 +424,9 @@ class VideoParams:
 class ParseVideoTag:
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析影像格式的tag code"""
+        result: list[str] = []
         print()
         print(f"{'='*10} video data block parse started {'='*10}")
 
@@ -415,15 +443,17 @@ class ParseVideoTag:
                 vic = vic_byte
 
             VideoParams.info = ParseVideoTag._get_video_format_info(vic)
-            info = VideoParams.info
-            print(
-                f"VIC {vic:3d}, {info["resolution"]:18} {info["display_aspect_ratio"]} - {info["pixel_clock"]} MHz"
+
+            result.append(
+                f"VIC {vic:3d}, {VideoParams.info["resolution"]:18} {VideoParams.info["display_aspect_ratio"]} - {VideoParams.info["pixel_clock"]} MHz"
             )
-            VideoParams.resolution.append(f"{info["resolution"]}")
+            print(result)
+            VideoParams.resolution.append(f"{VideoParams.info["resolution"]}")
 
             current_offset += 1
 
         print(f"{'='*10} video data block parse ended {'='*10}")
+        return {"descriptor": ", ".join(result)}
 
     @staticmethod
     def _get_video_format_info(vic: int) -> dict[str, str]:
@@ -463,21 +493,22 @@ class SpeakerAllocation:
 class ParseSpeakerBlock:
 
     @staticmethod
-    def parse_manager(block: bytes, offset: int, length: int):
+    def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析聲道配置的tag code"""
+        info: str = ""
         print()
         print(f"{'='*10} speaker data block parse started {'='*10}")
 
         current_offset = offset
         speaker_data = block[current_offset : current_offset + length]
-        result: str = ""
         for bit_position in range(8):
             if speaker_data[0] & (1 << bit_position):
-                result += f" - {SpeakerAllocation.speaker_config1[bit_position]}"
+                info += f" - {SpeakerAllocation.speaker_config1[bit_position]}"
 
         for bit_position in range(4):
             if speaker_data[1] & (1 << bit_position):
-                result += f" - {SpeakerAllocation.speaker_config2[bit_position]}"
-        print(f"Speaker Configuration: {result}")
+                info += f" - {SpeakerAllocation.speaker_config2[bit_position]}"
+        print(f"Speaker Configuration: {info}")
 
         print(f"{'='*10} speaker data block parse ended {'='*10}")
+        return {"descriptor": info}

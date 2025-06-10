@@ -381,6 +381,7 @@ class DTDInfo:
         offset: int = DTDParams.DESCRIPTOR_SIZE,
     ) -> DTDInfoData:
         result: DTDInfoData = {}
+        info: list[str] = []
         current_addr = start_addr  # 當前的DTD位址
         dtd_len = (
             DTDParams.EDID_BLOCK_SIZE - current_addr
@@ -412,9 +413,10 @@ class DTDInfo:
                 DTDInfo.parse_timing_resolution(block, current_addr)
                 timing_resolution = DTDParams.timing_resolution
                 print(f"時序解析度: {timing_resolution}")
-                result["dtd_timing"] = timing_resolution
-            current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+                info.append(timing_resolution)
 
+            current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
+        result["dtd_timing"] = info
         print(f"{'='*10}DTD or Display Descriptor parse completed{'='*10}")
 
         return result

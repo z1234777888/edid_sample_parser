@@ -16,7 +16,8 @@ class TimingParams:
 class ParseDPBlock:
 
     @staticmethod
-    def parse_manager(block: bytes):
+    def parse_manager(block: bytes) -> list[str]:
+        result: list[str] = []
         version = block[1:2].hex()
         if ENGINEERING:
             print(f"Version: {version}")
@@ -40,15 +41,16 @@ class ParseDPBlock:
                     timing_data = block[start:end]
                     match timing_tag:
                         case 0x03:
-                            ParseDPBlock._parse_Type_I(timing_data)
+                            result.append(ParseDPBlock._parse_Type_I(timing_data))
                         case _:
                             tag_name = identify_displayid_block_type(timing_tag)
                             print(f"Display ID Timing Type not supported {tag_name}")
 
         print(f"{'='*10}display id parse completed{'='*10}")
+        return result
 
     @staticmethod
-    def _parse_Type_I(timing_data: bytes):
+    def _parse_Type_I(timing_data: bytes) -> str:
         # 解析像素時脈
         pixel_clock = timing_data[0] | timing_data[1] << 8 | timing_data[2] << 16
         pixel_clock = (
@@ -91,10 +93,10 @@ class ParseDPBlock:
 
         # 計算更新率
         refresh_rate = pixel_clock * 1000000 / (h_total * v_total)
+        result = f"時序解析度: {H_Active}x{V_Active} @{refresh_rate:.0f}Hz - {pixel_clock:.2f} MHz  {"(首選時序)" if Timing_Options else ""}"
+        print(result)
 
-        print(
-            f"時序解析度: {H_Active}x{V_Active} @{refresh_rate:.0f}Hz - {pixel_clock:.2f} MHz  {"(首選時序)" if Timing_Options else ""}"
-        )
+        return result
 
 
 def identify_displayid_block_type(timing_tag: int) -> str:

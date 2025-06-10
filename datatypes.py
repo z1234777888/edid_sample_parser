@@ -33,7 +33,7 @@ class DP_DescriptorInfo(TypedDict, total=False):
 
 class DTDInfoData(TypedDict, total=False):
     perfered_timing: str
-    dtd_timing: str
+    dtd_timing: list[str]
     dp_descriptor: DP_DescriptorInfo
 
 
@@ -50,11 +50,12 @@ class StandardBlockResult(TypedDict):
 
 
 class CTABlockResult(TypedDict):
-    pass
+    TagCodeInfo: list[dict[str, str]]
+    DTDInfo: DTDInfoData
 
 
 class DisplayIDBlockResult(TypedDict):
-    pass
+    Type_I: list[str]
 
 
 class TotalResult(TypedDict, total=False):
