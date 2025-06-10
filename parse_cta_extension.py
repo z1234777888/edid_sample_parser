@@ -447,10 +447,10 @@ class ParseVideoTag:
             result.append(
                 f"VIC {vic:3d}, {VideoParams.info["resolution"]:18} {VideoParams.info["display_aspect_ratio"]} - {VideoParams.info["pixel_clock"]} MHz"
             )
-            print(result)
             VideoParams.resolution.append(f"{VideoParams.info["resolution"]}")
 
             current_offset += 1
+        print("\n".join(result))
 
         print(f"{'='*10} video data block parse ended {'='*10}")
         return {"descriptor": ", ".join(result)}
