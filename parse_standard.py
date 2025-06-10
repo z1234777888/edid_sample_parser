@@ -1,5 +1,13 @@
 from enum import IntEnum
 from vic_to_resolution import clock_to_formats
+from datatypes import (
+    HeaderInfoData,
+    TimingInfoData,
+    StaTimingItem,
+    EstTimingItem,
+    DTDInfoData,
+    DP_DescriptorInfo,
+)
 
 ENGINEERING = False
 
@@ -17,7 +25,7 @@ class HeaderInfo:
     """解析標頭資訊"""
 
     @staticmethod
-    def parse_manager(edid_data: bytes):
+    def parse_manager(edid_data: bytes) -> HeaderInfoData:
         """組合標頭數據"""
         print()
         print(f"{'='*10}header parse started{'='*10}")
@@ -34,8 +42,16 @@ class HeaderInfo:
         print(f"製造週數\t{HeaderParams.MF_week}")
         print(f"製造年份\t{HeaderParams.MF_year}")
         print(f"EDID版本\t{HeaderParams.version}")
-
+        result: HeaderInfoData = {
+            "MF_id": HeaderParams.MF_id,
+            "product_code": HeaderParams.product_code,
+            "serial_number": HeaderParams.serial_number,
+            "MF_week": HeaderParams.MF_week,
+            "MF_year": HeaderParams.MF_year,
+            "version": HeaderParams.version,
+        }
         print(f"{'='*10}header parse completed{'='*10}")
+        return result
 
     @staticmethod
     def _parse_manufacturer_id(edid_data: bytes) -> str:
@@ -80,7 +96,7 @@ class HeaderInfo:
 class EstablishedTimingInfo:
 
     @staticmethod
-    def _get_timing1(timing_index: int) -> dict[str, str]:
+    def _get_timing1(timing_index: int) -> EstTimingItem:
         timing_configs = {
             0: {"resolution": "800x600", "refresh_rate": "60", "source": "VESA"},
             1: {"resolution": "800x600", "refresh_rate": "56", "source": "VESA"},
@@ -95,8 +111,7 @@ class EstablishedTimingInfo:
             6: {"resolution": "720x400", "refresh_rate": "88", "source": "IBM, XGA2"},
             7: {"resolution": "720x400", "refresh_rate": "70", "source": "IBM, VGA"},
         }
-
-        return timing_configs.get(
+        info = timing_configs.get(
             timing_index,
             {
                 "resolution": "Undefined",
@@ -104,9 +119,15 @@ class EstablishedTimingInfo:
                 "source": "Undefined",
             },
         )
+        result: EstTimingItem = {
+            "resolution": info["resolution"],
+            "refresh_rate": info["refresh_rate"],
+            "source": info["source"],
+        }
+        return result
 
     @staticmethod
-    def _get_timing2(timing_index: int) -> dict[str, str]:
+    def _get_timing2(timing_index: int) -> EstTimingItem:
         timing_configs = {
             0: {
                 "resolution": "1280x1024",
@@ -150,8 +171,7 @@ class EstablishedTimingInfo:
                 "source": "VESA",
             },
         }
-
-        return timing_configs.get(
+        info = timing_configs.get(
             timing_index,
             {
                 "resolution": "Undefined",
@@ -159,51 +179,84 @@ class EstablishedTimingInfo:
                 "source": "Undefined",
             },
         )
+        result: EstTimingItem = {
+            "resolution": info["resolution"],
+            "refresh_rate": info["refresh_rate"],
+            "source": info["source"],
+        }
+        return result
 
     @staticmethod
-    def timing1(block: bytes):
+    def timing1(block: bytes) -> list[EstTimingItem]:
+        result: list[EstTimingItem] = []
         timing_byte = block[35]
         if timing_byte:
             print("第一組標準時序:")
             for i in range(8):
                 if timing_byte & (1 << i):
                     info = EstablishedTimingInfo._get_timing1(i)
+                    result.append(info)
                     print(
                         f"{info["resolution"]} @ {info["refresh_rate"]}Hz ({info["source"]})"
                     )
+        if not result:
+            undefined_timing: EstTimingItem = {
+                "resolution": "Undefined",
+                "refresh_rate": "Undefined",
+                "source": "Undefined",
+            }
+            result.append(undefined_timing)
+        return result
 
     @staticmethod
-    def timing2(block: bytes):
+    def timing2(block: bytes) -> list[EstTimingItem]:
+        result: list[EstTimingItem] = []
+
         timing_byte = block[36]
         if timing_byte:
             print("第二組標準時序:")
             for i in range(8):
                 if timing_byte & (1 << i):
                     info = EstablishedTimingInfo._get_timing2(i)
+                    result.append(info)
                     print(
                         f"{info["resolution"]} @ {info["refresh_rate"]}Hz ({info["source"]})"
                     )
+        if not result:
+            undefined_timing: EstTimingItem = {
+                "resolution": "Undefined",
+                "refresh_rate": "Undefined",
+                "source": "Undefined",
+            }
+            result.append(undefined_timing)
+        return result
 
 
 class TimingInfo:
 
     @staticmethod
-    def parse_manager(block: bytes):
+    def parse_manager(block: bytes) -> TimingInfoData:
         StandardTiming = StandardTimingInfo()  # 因為用了實例化所以要先宣告
+        result: TimingInfoData = {
+            "Standard": [],
+            "Established_1": [],
+            "Established_2": [],
+        }
         """組合標準時序資訊"""
         print()
         print(f"{'='*10}established timing parse started{'='*10}")
 
-        EstablishedTimingInfo.timing1(block)
-        EstablishedTimingInfo.timing2(block)
+        result["Established_1"] = EstablishedTimingInfo.timing1(block)
+        result["Established_2"] = EstablishedTimingInfo.timing2(block)
 
         print(f"{'='*10}established timing parse completed{'='*10}")
 
         print()
         print(f"{'='*10}standard timing parse started{'='*10}")
-        StandardTiming.parse_manager(block)
-
+        result["Standard"] = StandardTiming.parse_manager(block)
         print(f"{'='*10}standard timing parse completed{'='*10}")
+
+        return result
 
 
 class StandardTimingInfo:
@@ -229,16 +282,26 @@ class StandardTimingInfo:
             0b11: "16:9",
         }
 
-    def parse_manager(self, block: bytes):
-
+    def parse_manager(self, block: bytes) -> list[StaTimingItem]:
+        result: list[StaTimingItem] = []
         for i in range(8):
             start_index = self._START_BYTE + (i * self._BYTES_PER_TIMING)
             info = self._parse_single_timing(block[start_index], block[start_index + 1])
+            result.append(info)
             if info["h_res"] == "Undefined":
                 continue
             print(
                 f"{info['h_res']}x{info['v_res']} @ {info['refresh_rate']}Hz ({info['aspect_ratio']})"
             )
+        if not result:
+            unknown_timing: StaTimingItem = {
+                "h_res": "Undefined",
+                "v_res": "Undefined",
+                "refresh_rate": "Undefined",
+                "aspect_ratio": "Undefined",
+            }
+            result.append(unknown_timing)
+        return result
 
     def _calculate_horizontal_resolution(self, value: int) -> int:
         """計算水平解析度"""
@@ -254,7 +317,7 @@ class StandardTimingInfo:
         width, height = map(int, aspect_ratio.split(":"))
         return int(h_res * height / width)
 
-    def _parse_single_timing(self, byte1: int, byte2: int) -> dict[str, str]:
+    def _parse_single_timing(self, byte1: int, byte2: int) -> StaTimingItem:
         """解析單組 Standard Timing"""
         # 檢查是否為未使用的欄位
         if byte1 == 0x01 and byte2 == 0x01:
@@ -316,7 +379,8 @@ class DTDInfo:
         block: bytes,
         start_addr: int = DTDParams.FIRST_DESCRIPTOR_ADDR,
         offset: int = DTDParams.DESCRIPTOR_SIZE,
-    ):
+    ) -> DTDInfoData:
+        result: DTDInfoData = {}
         current_addr = start_addr  # 當前的DTD位址
         dtd_len = (
             DTDParams.EDID_BLOCK_SIZE - current_addr
@@ -327,8 +391,9 @@ class DTDInfo:
         if block[:8] == bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]):
             DTDInfo.parse_perfered_timing(block)
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
-
-            print(f"首選時序解析度: {DTDParams.perfered_timing}")
+            perfered_timing = DTDParams.perfered_timing
+            print(f"首選時序解析度: {perfered_timing}")
+            result["perfered_timing"] = perfered_timing
             dtd_len = 3
 
         # 最多3組
@@ -341,17 +406,22 @@ class DTDInfo:
             )
 
             if is_display_descriptor:
-                DTDInfo.parse_display_descriptor(block, current_addr)
+                descriptor = DTDInfo.parse_display_descriptor(block, current_addr)
+                result["dp_descriptor"] = descriptor
             else:
                 DTDInfo.parse_timing_resolution(block, current_addr)
-                print(f"時序解析度: {DTDParams.timing_resolution}")
+                timing_resolution = DTDParams.timing_resolution
+                print(f"時序解析度: {timing_resolution}")
+                result["dtd_timing"] = timing_resolution
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
 
         print(f"{'='*10}DTD or Display Descriptor parse completed{'='*10}")
 
-    @staticmethod
-    def parse_display_descriptor(block: bytes, offset: int):
+        return result
 
+    @staticmethod
+    def parse_display_descriptor(block: bytes, offset: int) -> DP_DescriptorInfo:
+        result: DP_DescriptorInfo = {}
         tag = block[offset + 3]
         descriptor_type = DTDParams.DESCRIPTOR_TAGS.get(tag, "reserved")
         # print(f"型態代碼{descriptor_type}")
@@ -363,17 +433,29 @@ class DTDInfo:
         )  # 計算頻率
 
         if descriptor_type == "display_range_limits":
-            print(
-                f"最大時序解析度: {h_active}x{v_active} @{freq}Hz {max_pixel_clock}MHz"
-            )
-            print(f"最大垂直更新率: {block[offset + 6]} Hz")
+            range_limits = f"{h_active}x{v_active} @{freq}Hz {max_pixel_clock}MHz"
+            max_rate = f"{block[offset + 6]} Hz"
+            print("最大時序解析度: " + range_limits)
+            print("最大垂直更新率: " + max_rate)
+            result["max_resolution"] = range_limits
+            result["max_refresh_rate"] = max_rate
 
         if descriptor_type == "display_serial_number":
-            print(f"序列號碼: {decriptor_data.decode("utf-8").strip()}")
+            serial_number: str = f"{decriptor_data.decode("utf-8").strip()}"
+            print("序列號碼: " + serial_number)
+            result["SerialNumber"] = serial_number
+
         if descriptor_type == "ascii_string":
-            print(f"文字敘述: {decriptor_data.decode("utf-8").strip()}")
+            ascii_string: str = f"{decriptor_data.decode('utf-8').strip()}"
+            print("文字敘述: " + ascii_string)
+            result["AsciiString"] = ascii_string
+
         if descriptor_type == "display_product_name":
-            print(f"產品名稱: {decriptor_data.decode("utf-8").strip()}")
+            product_name: str = f"{decriptor_data.decode('utf-8').strip()}"
+            print("產品名稱: " + product_name)
+            result["ProductName"] = product_name
+
+        return result
 
     @staticmethod
     def parse_perfered_timing(block: bytes) -> tuple[int, int]:

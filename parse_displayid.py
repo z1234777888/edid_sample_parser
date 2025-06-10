@@ -13,7 +13,7 @@ class TimingParams:
     }
 
 
-class ParseDisplayIDBlock:
+class ParseDPBlock:
 
     @staticmethod
     def parse_manager(block: bytes):
@@ -40,7 +40,7 @@ class ParseDisplayIDBlock:
                     timing_data = block[start:end]
                     match timing_tag:
                         case 0x03:
-                            ParseDisplayIDBlock._parse_Type_I(timing_data)
+                            ParseDPBlock._parse_Type_I(timing_data)
                         case _:
                             tag_name = identify_displayid_block_type(timing_tag)
                             print(f"Display ID Timing Type not supported {tag_name}")

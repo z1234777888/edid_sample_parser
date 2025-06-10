@@ -1,5 +1,4 @@
 from typing import Dict
-from validator import StandardValidator
 from parse_standard import (
     ENGINEERING,
     HeaderInfo,
@@ -8,7 +7,15 @@ from parse_standard import (
     TimingInfo,
 )
 from parse_cta_extension import ParseCTATagCode
-from parse_displayid import ParseDisplayIDBlock
+from parse_displayid import ParseDPBlock
+from datatypes import (
+    HeaderInfoData,
+    TimingInfoData,
+    StandardBlockResult,
+    DTDInfoData,
+    CTABlockResult,
+    DisplayIDBlockResult,
+)
 
 
 class BlockMapBlock:
@@ -42,51 +49,37 @@ class BlockMapBlock:
         return sort_blocks
 
 
-class ParseEdidBlock(BlockMapBlock):
-    def parse(self, block: bytes) -> Dict[str, str]:
-        tag = block[0]
+class ParseStandardBlock:
+    def parse(self, block: bytes) -> StandardBlockResult:
+        return self._parse_standard_block(block)
 
-        match tag:
-            case self.STANDARD_TAG:
-                """解析標準區塊"""
-                # 驗證基礎項目
-                StandardValidator.validate_manager(block)
-                print()
-                print("解析標準區塊")
-                return self._parse_standard_block(block)
-            case self.CTA_TAG:
-                """解析CTA擴展區塊"""
-                print()
-                print("解析CTA擴展區塊")
-                return self._parse_cta_extension_block(block)
-            case self.DISPLAY_TAG:
-                """解析Display ID區塊"""
-                print()
-                print("解析Display ID區塊")
-                return self._parse_display_id_block(block)
-            case self.MAP_TAG:
-                """解析Block Map區塊"""
-                print()
-                print("跳過解析Block Map區塊")
-                return {}
-            case _:
-                return {}
-
-    def _parse_standard_block(self, block: bytes) -> Dict[str, str]:
+    def _parse_standard_block(self, block: bytes) -> StandardBlockResult:
         """解析標準區塊"""
-
         # 標頭解析
-        HeaderInfo.parse_manager(block)
+        header_info: HeaderInfoData = HeaderInfo.parse_manager(block)
         # Basic Display Parameters 解析
         if ENGINEERING:
             BasicDisplayParameters.parse_manager(block)
 
-        TimingInfo.parse_manager(block)
-        # DTD 解析，只有CTA擴展區才需要額外宣告offset
-        DTDInfo.parse_manager(block)
-        return {}
+        timing_info: TimingInfoData = TimingInfo.parse_manager(block)
 
-    def _parse_cta_extension_block(self, block: bytes) -> Dict[str, str]:
+        # DTD 解析，只有CTA擴展區才需要額外宣告offset
+        DTD_info: DTDInfoData = DTDInfo.parse_manager(block)
+        # 組合結果
+        result: StandardBlockResult = {
+            "HeaderInfo": header_info,
+            "TimingInfo": timing_info,
+            "DTDInfo": DTD_info,
+        }
+
+        return result
+
+
+class ParseCTABlock:
+    def parse(self, block: bytes) -> CTABlockResult:
+        return self._parse_cta_extension_block(block)
+
+    def _parse_cta_extension_block(self, block: bytes) -> CTABlockResult:
         """解析CTA擴展區塊"""
         # 先解析tag code
         # block = test_block
@@ -96,6 +89,11 @@ class ParseEdidBlock(BlockMapBlock):
         DTDInfo.parse_manager(block, start_addr=dtd_addr)
         return {}
 
-    def _parse_display_id_block(self, block: bytes) -> Dict[str, str]:
-        ParseDisplayIDBlock.parse_manager(block)
+
+class ParseDisplayIDBlock:
+    def parse(self, block: bytes) -> DisplayIDBlockResult:
+        return self._parse_display_id_block(block)
+
+    def _parse_display_id_block(self, block: bytes) -> DisplayIDBlockResult:
+        ParseDPBlock.parse_manager(block)
         return {}

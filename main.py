@@ -1,8 +1,16 @@
 from monitor_info import MonitorManager
-from block_map_classify import BlockMapBlock, ParseEdidBlock
+from block_map_classify import (
+    BlockMapBlock,
+    ParseStandardBlock,
+    ParseCTABlock,
+    ParseDisplayIDBlock,
+)
+from validator import StandardValidator
 from parse_standard import ENGINEERING
 from typing import List
 from enum import IntEnum
+
+from datatypes import TotalResult
 
 
 def format_bytes(data: bytes):
@@ -71,16 +79,42 @@ def check_sum(block: bytes) -> bool:
         return False
 
 
+def collect_result(raw_data: bytes) -> TotalResult:
+    block_map = BlockMapBlock()
+    sta = ParseStandardBlock()
+    cta = ParseCTABlock()
+    dpid = ParseDisplayIDBlock()
+    result: TotalResult = {}
+
+    for key, value in block_map.classify_blocks(raw_data).items():
+        if key == BlockType.STANDARD:
+            standard_block = value
+            StandardValidator.validate_manager(standard_block)
+            result["StandardBlockInfo"] = sta.parse(standard_block)
+
+        elif key == BlockType.CTA_EXTENSION:
+            cta_extension_block = value
+            result["CTABlockInfo"] = cta.parse(cta_extension_block)
+
+        elif key == BlockType.DISPLAY_ID:
+            display_id_block = value
+            result["DisplayIDBlockInfo"] = dpid.parse(display_id_block)
+
+        elif key == BlockType.BLOCK_MAP:
+            pass
+
+        if ENGINEERING:
+            check_sum(value)
+
+    return result
+
+
 def main():
 
     manager = MonitorManager()
     info = manager.monitor_read()
-    block_map = BlockMapBlock()
-    parse_edid = ParseEdidBlock()
-    raw_data = None  # bytes類型只能用optical，so that's why it's None by default
-    standard_block = None
-    cta_extension_block = None
-    display_id_block = None
+
+    result: TotalResult = {}
     if not info.active_monitors:
         print("未找到活耀顯示器資訊")
         return
@@ -93,31 +127,8 @@ def main():
         if raw_data is None:
             continue
 
-        for key, value in block_map.classify_blocks(raw_data).items():
-            if key == BlockType.STANDARD:
-                standard_block = value
-
-            elif key == BlockType.CTA_EXTENSION:
-                cta_extension_block = value
-            elif key == BlockType.DISPLAY_ID:
-                display_id_block = value
-            elif key == BlockType.BLOCK_MAP:
-                pass
-        if standard_block is not None:
-            parse_edid.parse(standard_block)
-            if ENGINEERING:
-                check_sum(standard_block)
-
-        if cta_extension_block is not None:
-            parse_edid.parse(cta_extension_block)
-            if ENGINEERING:
-                check_sum(cta_extension_block)
-
-        if display_id_block is not None:
-            parse_edid.parse(display_id_block)
-            if ENGINEERING:
-                check_sum(display_id_block)
-
+        result = collect_result(raw_data)
+        print(result)
         # 比對擴展數
         if ENGINEERING:
             extension_num(raw_data)
