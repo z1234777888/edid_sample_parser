@@ -6,8 +6,8 @@ from datatypes import (
     StaTimingItem,
     EstTimingItem,
     DTDInfoData,
-    DP_DescriptorInfo,
 )
+from typing import Tuple
 
 ENGINEERING = False
 
@@ -381,7 +381,8 @@ class DTDInfo:
         offset: int = DTDParams.DESCRIPTOR_SIZE,
     ) -> DTDInfoData:
         result: DTDInfoData = {}
-        info: list[str] = []
+        descriptor_info: dict[str, dict[str, str]] = {}
+        timing_info: list[str] = []
         current_addr = start_addr  # 當前的DTD位址
         dtd_len = (
             DTDParams.EDID_BLOCK_SIZE - current_addr
@@ -407,23 +408,26 @@ class DTDInfo:
             )
 
             if is_display_descriptor:
-                descriptor = DTDInfo.parse_display_descriptor(block, current_addr)
-                result["dp_descriptor"] = descriptor
+                type, descriptor = DTDInfo.parse_display_descriptor(block, current_addr)
+                descriptor_info[type] = descriptor
             else:
                 DTDInfo.parse_timing_resolution(block, current_addr)
                 timing_resolution = DTDParams.timing_resolution
                 print(f"時序解析度: {timing_resolution}")
-                info.append(timing_resolution)
+                timing_info.append(timing_resolution)
 
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
-        result["dtd_timing"] = info
+        result["dtd_timing"] = timing_info
+        result["dp_descriptor"] = descriptor_info
         print(f"{'='*10}DTD or Display Descriptor parse completed{'='*10}")
 
         return result
 
     @staticmethod
-    def parse_display_descriptor(block: bytes, offset: int) -> DP_DescriptorInfo:
-        result: DP_DescriptorInfo = {}
+    def parse_display_descriptor(
+        block: bytes, offset: int
+    ) -> Tuple[str, dict[str, str]]:
+        result: dict[str, str] = {}
         tag = block[offset + 3]
         descriptor_type = DTDParams.DESCRIPTOR_TAGS.get(tag, "reserved")
         # print(f"型態代碼{descriptor_type}")
@@ -457,7 +461,7 @@ class DTDInfo:
             print("產品名稱: " + product_name)
             result["ProductName"] = product_name
 
-        return result
+        return descriptor_type, result
 
     @staticmethod
     def parse_perfered_timing(block: bytes) -> tuple[int, int]:

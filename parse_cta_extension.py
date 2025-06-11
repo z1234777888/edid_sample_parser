@@ -453,7 +453,7 @@ class ParseVideoTag:
         print("\n".join(result))
 
         print(f"{'='*10} video data block parse ended {'='*10}")
-        return {"descriptor": ", ".join(result)}
+        return {"descriptor": "| ".join(result)}
 
     @staticmethod
     def _get_video_format_info(vic: int) -> dict[str, str]:

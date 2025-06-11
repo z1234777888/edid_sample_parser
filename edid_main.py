@@ -79,7 +79,7 @@ def check_sum(block: bytes) -> bool:
         return False
 
 
-def collect_result(raw_data: bytes) -> TotalResult:
+def EDID_parse_manager(raw_data: bytes) -> TotalResult:
     block_map = BlockMapBlock()
     sta = ParseStandardBlock()
     cta = ParseCTABlock()
@@ -109,26 +109,30 @@ def collect_result(raw_data: bytes) -> TotalResult:
     return result
 
 
-def main():
+def main() -> list[TotalResult]:
 
     manager = MonitorManager()
-    info = manager.monitor_read()
+    monotor_info = manager.monitor_read()
 
-    result: TotalResult = {}
-    if not info.active_monitors:
+    EDID_info: TotalResult = {}
+    EDID_info_list: list[TotalResult] = []
+
+    if not monotor_info.active_monitors:
         print("未找到活耀顯示器資訊")
-        return
+        return []
 
-    print(f"偵測到 {len(info.active_monitors)} 個活躍顯示器")
+    print(f"偵測到 {len(monotor_info.active_monitors)} 個活躍顯示器")
 
-    for index, monitor in enumerate(info.active_monitors, 1):
-        raw_data = manager.display_monitor_info(index, monitor, info.registry_paths)
+    for index, monitor in enumerate(monotor_info.active_monitors, 1):
+        raw_data = manager.display_monitor_info(
+            index, monitor, monotor_info.registry_paths
+        )
         """這裡放置想要進一步解析的內容"""
         if raw_data is None:
             continue
 
-        result = collect_result(raw_data)
-        print(result)
+        EDID_info = EDID_parse_manager(raw_data)
+        EDID_info_list.append(EDID_info)
         # 比對擴展數
         if ENGINEERING:
             extension_num(raw_data)
@@ -137,7 +141,10 @@ def main():
         print()
         print(format_bytes(raw_data))
 
+    print()
+
     print("\n程式執行完畢，如果有遺漏的顯示器，請將顯示設定改為延伸模式後再試一次")
+    return EDID_info_list
 
 
 if __name__ == "__main__":

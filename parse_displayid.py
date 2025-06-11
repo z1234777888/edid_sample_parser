@@ -93,8 +93,8 @@ class ParseDPBlock:
 
         # 計算更新率
         refresh_rate = pixel_clock * 1000000 / (h_total * v_total)
-        result = f"時序解析度: {H_Active}x{V_Active} @{refresh_rate:.0f}Hz - {pixel_clock:.2f} MHz  {"(首選時序)" if Timing_Options else ""}"
-        print(result)
+        result = f"{H_Active}x{V_Active} @{refresh_rate:.0f}Hz - {pixel_clock:.2f} MHz  {"(首選時序)" if Timing_Options else ""}"
+        print("時序解析度: " + result)
 
         return result
 

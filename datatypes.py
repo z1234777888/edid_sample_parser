@@ -23,18 +23,10 @@ class EstTimingItem(TypedDict):
     source: str
 
 
-class DP_DescriptorInfo(TypedDict, total=False):
-    SerialNumber: str
-    AsciiString: str
-    ProductName: str
-    max_resolution: str
-    max_refresh_rate: str
-
-
 class DTDInfoData(TypedDict, total=False):
     perfered_timing: str
     dtd_timing: list[str]
-    dp_descriptor: DP_DescriptorInfo
+    dp_descriptor: dict[str, dict[str, str]]
 
 
 class TimingInfoData(TypedDict):
