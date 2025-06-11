@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.decrease_btn)
         toolbar.addWidget(self.font_size_label)
         toolbar.addWidget(self.increase_btn)
-        toolbar.addWidget(self.info_type)
+        # toolbar.addWidget(self.info_type)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.export_btn)
         toolbar.addWidget(self.export_edid_btn)
@@ -221,6 +221,11 @@ class MainWindow(QMainWindow):
 
         # 定義區塊模式和對應的標題
         section_patterns: List[Dict[str, str]] = [
+            {
+                "start": "==========edid raw data parse started==========",
+                "end": "==========edid raw data parse completed==========",
+                "title": "EDID Raw Data",
+            },
             {
                 "start": "========== video data block parse started ==========",
                 "end": "========== video data block parse ended ==========",
@@ -593,6 +598,14 @@ class MainWindow(QMainWindow):
                 for timing in data["DisplayIDBlockInfo"]["Type_I"]:
                     formatted_text += f"時序解析度: {timing}\n"
                 formatted_text += "==========display id parse completed==========\n"
+
+            if "EDIDRawData" in data:
+                formatted_text += "==========edid raw data parse started==========\n"
+                formatted_text += f"{data['EDIDRawData']}\n"
+                formatted_text += (
+                    "==========edid raw data parse completed==========\n\n"
+                )
+
             formatted_text = self.add_titles(formatted_text)
             formatted_text = self.remove_empty_blocks(formatted_text)
             formatted_text = self.remove_start_end_lines_specific(formatted_text)

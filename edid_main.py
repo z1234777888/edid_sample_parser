@@ -132,6 +132,7 @@ def main() -> list[TotalResult]:
             continue
 
         EDID_info = EDID_parse_manager(raw_data)
+        EDID_info["EDIDRawData"] = format_bytes(raw_data)
         EDID_info_list.append(EDID_info)
         # 比對擴展數
         if ENGINEERING:
@@ -139,7 +140,7 @@ def main() -> list[TotalResult]:
 
         """每次結束解析時,將raw_data拋出來"""
         print()
-        print(format_bytes(raw_data))
+        print(EDID_info["EDIDRawData"])
 
     print()
 

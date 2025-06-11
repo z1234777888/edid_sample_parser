@@ -54,3 +54,4 @@ class TotalResult(TypedDict, total=False):
     StandardBlockInfo: StandardBlockResult
     CTABlockInfo: CTABlockResult
     DisplayIDBlockInfo: DisplayIDBlockResult
+    EDIDRawData: str
