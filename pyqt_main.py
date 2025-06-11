@@ -1,5 +1,5 @@
 import sys
-
+from branch_ico import get_branch_icon
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWidgets import QLabel, QPushButton
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont
 
 from edid_main import main as edid_parser
 from datatypes import TotalResult
@@ -103,7 +103,8 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("EDID 解析工具")
-        self.setWindowIcon(QIcon(r"branch.ico"))
+
+        self.setWindowIcon(get_branch_icon())
         self.resize(840, 550)
 
         # Create central widget and layout
