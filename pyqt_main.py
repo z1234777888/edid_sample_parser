@@ -15,6 +15,8 @@ from PyQt6.QtGui import QFont, QIcon
 
 from edid_main import main as edid_parser
 from datatypes import TotalResult
+from typing import List, Dict, Match
+import re
 
 
 class MainWindow(QMainWindow):
@@ -23,6 +25,7 @@ class MainWindow(QMainWindow):
         self.last_info_type_selection = "完整檢視"  # 保存下拉選單狀態或首次狀態
         self.is_dark_mode = False
         self.parsed_data_list: list[TotalResult] = edid_parser()
+        self.separator_lines = False
         self.themes = {
             "light": """
                 QMainWindow {
@@ -192,13 +195,171 @@ class MainWindow(QMainWindow):
             font.setPointSize(new_size)
             self.text_display.setFont(font)
 
-    def format_edid_data(self, data: TotalResult):
+    def remove_start_end_lines_specific(self, text: str) -> str:
+        """針對特定格式的分隔線進行清理"""
+        # 方法3: 針對你的特定格式
+        patterns = [
+            r"^=+ .* parse started =+$",
+            r"^=+ .* parse ended =+$",
+            r"^=+ .* parse completed =+$",
+            r"^=+.*parse started=+$",
+            r"^=+.*parse completed=+$",
+        ]
+
+        result = text
+        for pattern in patterns:
+            result = re.sub(pattern, "", result, flags=re.MULTILINE)
+
+        # 清理多餘的空行
+        result = re.sub(r"\n\s*\n", "\n\n", result)
+        result = result.strip()
+
+        return result
+
+    def add_titles(self, text: str) -> str:
+        """在有內容的分隔線區塊中加入標題"""
+
+        # 定義區塊模式和對應的標題
+        section_patterns: List[Dict[str, str]] = [
+            {
+                "start": "========== video data block parse started ==========",
+                "end": "========== video data block parse ended ==========",
+                "title": "影像資料區塊 (Video Data Block)",
+            },
+            {
+                "start": "========== audio data block parse started ==========",
+                "end": "========== audio data block parse ended ==========",
+                "title": "音訊資料區塊 (Audio Data Block)",
+            },
+            {
+                "start": "========== speaker data block parse started ==========",
+                "end": "========== speaker data block parse ended ==========",
+                "title": "揚聲器配置區塊 (Speaker Data Block)",
+            },
+            {
+                "start": "========== VSDB parse started ==========",
+                "end": "========== VSDB parse ended ==========",
+                "title": "廠商特定資料區塊 (Vendor Specific Data Block)",
+            },
+            {
+                "start": "========== Colorimetry Data Block parse started ==========",
+                "end": "========== Colorimetry Data Block parse completed ==========",
+                "title": "HDR 色彩支援區塊 (Colorimetry Data Block)",
+            },
+            {
+                "start": "========== YCbCr 4:2:0 Capability Map parse started ==========",
+                "end": "========== YCbCr 4:2:0 Capability Map parse ended ==========",
+                "title": "YCbCr 4:2:0 支援區塊",
+            },
+            {
+                "start": "==========DTD or Display Descriptor parse started==========",
+                "end": "==========DTD or Display Descriptor parse completed==========",
+                "title": "詳細時序描述區塊 (Detailed Timing Descriptor)",
+            },
+            {
+                "start": "==========display id parse started==========",
+                "end": "==========display id parse completed==========",
+                "title": "顯示器 ID 區塊 (Display ID Block)",
+            },
+            {
+                "start": "==========header parse started==========",
+                "end": "==========header parse completed==========",
+                "title": "基本顯示器資訊 (Header Information)",
+            },
+            {
+                "start": "==========established timing parse started==========",
+                "end": "==========established timing parse completed==========",
+                "title": "標準時序區塊 (Established Timing)",
+            },
+            {
+                "start": "==========standard timing parse started==========",
+                "end": "==========standard timing parse completed==========",
+                "title": "標準時序區塊 (Standard Timing)",
+            },
+        ]
+
+        for pattern in section_patterns:
+            start_pattern: str = re.escape(pattern["start"])
+            end_pattern: str = re.escape(pattern["end"])
+
+            # 建立正規表達式來匹配整個區塊
+            block_regex: str = f"({start_pattern})(.*?)({end_pattern})"
+
+            def replace_block(match: Match[str]) -> str:
+                start_delimiter: str = match.group(1)
+                content: str = match.group(2)
+                end_delimiter: str = match.group(3)
+
+                # 檢查內容是否只包含空白字符和換行符
+                content_stripped: str = content.strip()
+
+                if content_stripped:  # 如果有實際內容
+                    # 在開始分隔線後加入標題
+                    title_line: str = f"\n【{pattern['title']}】"
+                    return start_delimiter + title_line + content + end_delimiter
+                else:
+                    # 如果沒有內容，保持原樣（之後會被 remove_empty_blocks 移除）
+                    return match.group(0)
+
+            # 使用 re.DOTALL 讓 . 也能匹配換行符
+            text = re.sub(block_regex, replace_block, text, flags=re.DOTALL)
+
+        return text
+
+    def remove_empty_blocks(self, text: str) -> str:
+        """移除所有空的區塊"""
+
+        # 定義所有可能的空區塊模式
+        empty_blocks = [
+            # Video Data Block
+            "========== video data block parse started ==========\n========== video data block parse ended ==========",
+            # Audio Data Block
+            "========== audio data block parse started ==========\n========== audio data block parse ended ==========",
+            # Speaker Data Block
+            "========== speaker data block parse started ==========\n========== speaker data block parse ended ==========",
+            # VSDB
+            "========== VSDB parse started ==========\n========== VSDB parse ended ==========",
+            # Colorimetry Data Block
+            "========== Colorimetry Data Block parse started ==========\n========== Colorimetry Data Block parse completed ==========",
+            # YCbCr 4:2:0 Capability Map
+            "========== YCbCr 4:2:0 Capability Map parse started ==========\n========== YCbCr 4:2:0 Capability Map parse ended ==========",
+            # DTD or Display Descriptor
+            "==========DTD or Display Descriptor parse started==========\n==========DTD or Display Descriptor parse completed==========",
+            # Display ID
+            "==========display id parse started==========\n==========display id parse completed==========",
+            # Header
+            "==========header parse started==========\n==========header parse completed==========",
+            # Established Timing
+            "==========established timing parse started==========\n==========established timing parse completed==========",
+            # Standard Timing
+            "==========standard timing parse started==========\n==========standard timing parse completed==========",
+        ]
+
+        # 逐一移除所有空區塊
+        for empty_block in empty_blocks:
+            # 處理可能的換行符變化
+            variations = [
+                empty_block,  # 原始格式
+                empty_block + "\n",  # 後面有一個換行
+                empty_block + "\n\n",  # 後面有兩個換行
+            ]
+
+            for variation in variations:
+                text = text.replace(variation, "")
+
+        # 清理多餘的空行（超過兩個連續換行的情況）
+        import re
+
+        text = re.sub(r"\n{3,}", "\n\n", text)
+
+        return text.strip()
+
+    def format_edid_data(self, data: TotalResult) -> str:
         """將 EDID 資料格式化為類似 format_data.txt 的格式"""
         if not data:
             return "無法讀取顯示器資訊"
 
-        formatted_text = ""
-
+        formatted_text: str = ""
         try:
             # Header 資訊
             if (
@@ -206,7 +367,9 @@ class MainWindow(QMainWindow):
                 and "HeaderInfo" in data["StandardBlockInfo"]
             ):
                 header = data["StandardBlockInfo"]["HeaderInfo"]
+
                 formatted_text += "==========header parse started==========\n"
+
                 formatted_text += f"製造商ID        {header.get('MF_id', 'N/A')}\n"
                 formatted_text += (
                     f"產品代碼        {header.get('product_code', 'N/A')}\n"
@@ -219,54 +382,58 @@ class MainWindow(QMainWindow):
                 formatted_text += f"EDID版本        {header.get('version', 'N/A')}\n"
                 formatted_text += "==========header parse completed==========\n\n"
 
-            # Established Timing 資訊
-            if (
-                "StandardBlockInfo" in data
-                and "TimingInfo" in data["StandardBlockInfo"]
-            ):
-                timing = data["StandardBlockInfo"]["TimingInfo"]
+            # # Established Timing 資訊(低解析度不具參考價值)
+            # if (
+            #     "StandardBlockInfo" in data
+            #     and "TimingInfo" in data["StandardBlockInfo"]
+            # ):
+            #     timing = data["StandardBlockInfo"]["TimingInfo"]
+            #     formatted_text += (
+            #         "==========established timing parse started==========\n"
+            #     )
 
-                formatted_text += (
-                    "==========established timing parse started==========\n"
-                )
-                if "Established_1" in timing:
-                    # 先檢查是否有有效的解析度
-                    valid_resolutions = [
-                        est
-                        for est in timing["Established_1"]
-                        if est["resolution"] != "Undefined"
-                    ]
+            #     if "Established_1" in timing:
+            #         # 先檢查是否有有效的解析度
+            #         valid_resolutions = [
+            #             est
+            #             for est in timing["Established_1"]
+            #             if est["resolution"] != "Undefined"
+            #         ]
 
-                    if valid_resolutions:  # 只有在有有效解析度時才加入標題
-                        formatted_text += "第一組標準時序:\n"
-                        for est in valid_resolutions:
-                            formatted_text += f"{est['resolution']} @ {est['refresh_rate']}Hz ({est['source']})\n"
+            #         if valid_resolutions:  # 只有在有有效解析度時才加入標題
+            #             formatted_text += "第一組標準時序:\n"
+            #             for est in valid_resolutions:
+            #                 formatted_text += f"{est['resolution']} @ {est['refresh_rate']}Hz ({est['source']})\n"
 
-                if "Established_2" in timing:
-                    # 先檢查是否有有效的解析度
-                    valid_resolutions = [
-                        est
-                        for est in timing["Established_2"]
-                        if est["resolution"] != "Undefined"
-                    ]
+            #     if "Established_2" in timing:
+            #         # 先檢查是否有有效的解析度
+            #         valid_resolutions = [
+            #             est
+            #             for est in timing["Established_2"]
+            #             if est["resolution"] != "Undefined"
+            #         ]
 
-                    if valid_resolutions:  # 只有在有有效解析度時才加入標題
-                        formatted_text += "第二組標準時序:\n"
-                        for est in valid_resolutions:
-                            formatted_text += f"{est['resolution']} @ {est['refresh_rate']}Hz ({est['source']})\n"
-                formatted_text += (
-                    "==========established timing parse completed==========\n\n"
-                )
+            #         if valid_resolutions:  # 只有在有有效解析度時才加入標題
+            #             formatted_text += "第二組標準時序:\n"
+            #             for est in valid_resolutions:
+            #                 formatted_text += f"{est['resolution']} @ {est['refresh_rate']}Hz ({est['source']})\n"
 
-                # Standard Timing 資訊
-                formatted_text += "==========standard timing parse started==========\n"
-                if "Standard" in timing:
-                    for std in timing["Standard"]:
-                        if std["h_res"] != "Undefined":
-                            formatted_text += f"{std['h_res']}x{std['v_res']} @ {std['refresh_rate']}Hz ({std['aspect_ratio']})\n"
-                formatted_text += (
-                    "==========standard timing parse completed==========\n\n"
-                )
+            #     formatted_text += (
+            #         "==========established timing parse completed==========\n\n"
+            #     )
+
+            #     # Standard Timing 資訊
+            #     formatted_text += (
+            #         "==========standard timing parse started==========\n"
+            #     )
+
+            #     if "Standard" in timing:
+            #         for std in timing["Standard"]:
+            #             if std["h_res"] != "Undefined":
+            #                 formatted_text += f"{std['h_res']}x{std['v_res']} @ {std['refresh_rate']}Hz ({std['aspect_ratio']})\n"
+            #     formatted_text += (
+            #         "==========standard timing parse completed==========\n\n"
+            #     )
 
             # DTD 資訊
             if "StandardBlockInfo" in data and "DTDInfo" in data["StandardBlockInfo"]:
@@ -274,6 +441,7 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "==========DTD or Display Descriptor parse started==========\n"
                 )
+
                 if "perfered_timing" in dtd:
                     formatted_text += f"首選時序解析度: {dtd['perfered_timing']}\n"
                 if "dtd_timing" in dtd:
@@ -312,8 +480,9 @@ class MainWindow(QMainWindow):
                             "SerialNumber"
                         ]
                         formatted_text += f"序列號碼: {serial_number}\n"
-
-                    formatted_text += "==========DTD or Display Descriptor parse completed==========\n\n"
+                formatted_text += (
+                    "==========DTD or Display Descriptor parse completed==========\n\n"
+                )
 
             # CTA Block 資訊
             if "CTABlockInfo" in data:
@@ -323,6 +492,7 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== video data block parse started ==========\n"
                 )
+
                 if "TagCodeInfo" in cta:
                     for tag in cta["TagCodeInfo"]:
                         if "descriptor" in tag and "VIC" in tag["descriptor"]:
@@ -341,6 +511,7 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== audio data block parse started ==========\n"
                 )
+
                 for tag in cta.get("TagCodeInfo", []):
                     if "descriptor" in tag and "L-PCM" in tag["descriptor"]:
                         formatted_text += f"{tag['descriptor']}\n"
@@ -353,6 +524,7 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== speaker data block parse started ==========\n"
                 )
+
                 for tag in cta.get("TagCodeInfo", []):
                     if "descriptor" in tag and "FL/FR" in tag["descriptor"]:
                         formatted_text += (
@@ -365,6 +537,7 @@ class MainWindow(QMainWindow):
 
                 # VSDB
                 formatted_text += "========== VSDB parse started ==========\n"
+
                 for tag in cta.get("TagCodeInfo", []):
                     if "CEC_PA" in tag:
                         formatted_text += f"CEC PA {tag['CEC_PA']}\n"
@@ -378,6 +551,7 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== Colorimetry Data Block parse started ==========\n"
                 )
+
                 for tag in cta.get("TagCodeInfo", []):
                     if "HDR Static Metadata Data Block" in tag:
                         formatted_text += f"{tag['HDR Static Metadata Data Block']}\n"
@@ -390,12 +564,14 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== YCbCr 4:2:0 Capability Map parse started ==========\n"
                 )
+
                 for tag in cta.get("TagCodeInfo", []):
                     if "YCbCr 4:2:0 Capability Map Data Block" in tag:
                         formatted_text += (
                             f"{tag['YCbCr 4:2:0 Capability Map Data Block']}\n"
                         )
                         break
+
                 formatted_text += (
                     "========== YCbCr 4:2:0 Capability Map parse ended ==========\n\n"
                 )
@@ -405,6 +581,7 @@ class MainWindow(QMainWindow):
                     formatted_text += (
                         "==========DTD or Display Descriptor parse started==========\n"
                     )
+
                     for timing in cta["DTDInfo"]["dtd_timing"]:
                         formatted_text += f"時序解析度: {timing}\n"
                     formatted_text += "==========DTD or Display Descriptor parse completed==========\n\n"
@@ -412,10 +589,13 @@ class MainWindow(QMainWindow):
             # Display ID Block
             if "DisplayIDBlockInfo" in data and "Type_I" in data["DisplayIDBlockInfo"]:
                 formatted_text += "==========display id parse started==========\n"
+
                 for timing in data["DisplayIDBlockInfo"]["Type_I"]:
                     formatted_text += f"時序解析度: {timing}\n"
                 formatted_text += "==========display id parse completed==========\n"
-
+            formatted_text = self.add_titles(formatted_text)
+            formatted_text = self.remove_empty_blocks(formatted_text)
+            formatted_text = self.remove_start_end_lines_specific(formatted_text)
         except Exception as e:
             formatted_text += f"資料格式化時發生錯誤: {str(e)}\n"
             formatted_text += f"原始資料: {str(data)}"
