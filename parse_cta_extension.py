@@ -259,16 +259,22 @@ class ParseVSDBBlock:
             print(f"{'='*10} VSDB parse started {'='*10}")
             # 剩餘資料為廠商自定義內容
             vendor_data = block[offset + 3 : offset + length] if length > 3 else bytes()
-            ParseVSDBBlock._parse_hdmi_vsdb(vendor_data)
-            info["CEC_PA"] = VSDBParams.CEC_PA
-            info["res_support"] = f"{', '.join(VSDBParams.res_support)}"
-            info["color_depths"] = f"{', '.join(VSDBParams.color_depths)} bits"
+            cec_pa, res_support, color_depths, ycbcr_444_support = (
+                ParseVSDBBlock._parse_hdmi_vsdb(vendor_data)
+            )
+            if cec_pa != "":
+                info["CEC_PA"] = cec_pa
+                print(f"CEC PA {info["CEC_PA"]}")
 
-            print(f"CEC PA {info["CEC_PA"]}")
-            print(f"支援解析度 {info["res_support"]}")
-            print(f"位元深度 {info["color_depths"] }")
+            if res_support != []:
+                info["res_support"] = f"{', '.join(res_support)}"
+                print(f"支援解析度 {info["res_support"]}")
 
-            if VSDBParams.ycbcr_444_support:
+            if color_depths != []:
+                info["color_depths"] = f"{', '.join(color_depths)} bits"
+                print(f"位元深度 {info["color_depths"] }")
+
+            if ycbcr_444_support:
                 print("支援  YCbCr 4:4:4 & RGB 4:4:4")
                 info["rgb_444_support"] = "支援  YCbCr 4:4:4 & RGB 4:4:4"
             else:
@@ -284,36 +290,39 @@ class ParseVSDBBlock:
         return info
 
     @staticmethod
-    def _parse_hdmi_vsdb(vendor_data: bytes):
+    def _parse_hdmi_vsdb(vendor_data: bytes) -> tuple[str, list[str], list[str], bool]:
         """解析HDMI VSDB內容"""
         # 如果忘記怎麼解析，可以找hdmi1.3 spec 或是看以下網址
         # https://blog.csdn.net/cfl927096306/article/details/108017501
+        cec_pa: str = ""
+        res_support: list[str] = []
+        color_depths: list[str] = []
+        ycbcr_444_support: bool = False
+
         if len(vendor_data) >= 2:
             # Physical Address
             pa_high = vendor_data[0]
             pa_low = vendor_data[1]
-            VSDBParams.CEC_PA = (
-                f"{pa_high >> 4}.{pa_high & 0x0F}.{pa_low >> 4}.{pa_low & 0x0F}"
-            )
+            cec_pa = f"{pa_high >> 4}.{pa_high & 0x0F}.{pa_low >> 4}.{pa_low & 0x0F}"
 
         if len(vendor_data) >= 3:
             features = vendor_data[2]
             color_deepth_support = (features & 0x70) >> 4
             for bit_position in range(3):
                 if color_deepth_support & (1 << bit_position):
-                    VSDBParams.color_depths.append(
-                        "".join(f"{VSDBParams.dc_bit[bit_position]}")
-                    )
+                    color_depths.append("".join(f"{VSDBParams.dc_bit[bit_position]}"))
             if (features & 0x08) >> 3:
-                VSDBParams.ycbcr_444_support = True
+                ycbcr_444_support = True
 
         if len(vendor_data) >= 4:
-            VSDBParams.tmds_clock = vendor_data[3] * 5
+            tmds_clock = vendor_data[3] * 5
             for i in range(len(VSDBParams.Resolution)):
                 h, v = VSDBParams.Resolution[i]
-                freq = get_freq(h, v, VSDBParams.tmds_clock, clock_to_formats)
+                freq = get_freq(h, v, tmds_clock, clock_to_formats)
                 if freq != 0:
-                    VSDBParams.res_support.append("".join([f"{h}x{v} @{freq}Hz"]))
+                    res_support.append("".join([f"{h}x{v} @{freq}Hz"]))
+
+        return cec_pa, res_support, color_depths, ycbcr_444_support
 
 
 class AudioParams:
@@ -429,7 +438,7 @@ class ParseVideoTag:
         result: list[str] = []
         print()
         print(f"{'='*10} video data block parse started {'='*10}")
-
+        VideoParams.resolution.clear()
         current_offset = offset
 
         while current_offset < offset + length:
