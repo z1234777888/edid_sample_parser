@@ -55,20 +55,20 @@ class ParseStandardBlock:
 
     def _parse_standard_block(self, block: bytes) -> StandardBlockResult:
         """解析標準區塊"""
+        result: StandardBlockResult = {}
         # 標頭解析
         header_info: HeaderInfoData = HeaderInfo.parse_manager(block)
         # Basic Display Parameters 解析
         if ENGINEERING:
             BasicDisplayParameters.parse_manager(block)
 
-        timing_info: TimingInfoData = TimingInfo.parse_manager(block)
-
+            timing_info: TimingInfoData = TimingInfo.parse_manager(block)
+            result["TimingInfo"] = timing_info
         # DTD 解析，只有CTA擴展區才需要額外宣告offset
         DTD_info: DTDInfoData = DTDInfo.parse_manager(block)
         # 組合結果
-        result: StandardBlockResult = {
+        result = {
             "HeaderInfo": header_info,
-            "TimingInfo": timing_info,
             "DTDInfo": DTD_info,
         }
 

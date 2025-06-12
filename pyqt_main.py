@@ -380,11 +380,16 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     f"產品代碼        {header.get('product_code', 'N/A')}\n"
                 )
-                formatted_text += (
-                    f"序列號碼        {header.get('serial_number', 'N/A')}\n"
-                )
-                formatted_text += f"製造週數        {header.get('MF_week', 'N/A')}\n"
-                formatted_text += f"製造年份        {header.get('MF_year', 'N/A')}\n"
+                if header.get("serial_number", "N/A") != "N/A":
+                    formatted_text += (
+                        f"序列號碼        {header.get('serial_number', 'N/A')}\n"
+                    )
+                    formatted_text += (
+                        f"製造週數        {header.get('MF_week', 'N/A')}\n"
+                    )
+                    formatted_text += (
+                        f"製造年份        {header.get('MF_year', 'N/A')}\n"
+                    )
                 formatted_text += f"EDID版本        {header.get('version', 'N/A')}\n"
                 formatted_text += "==========header parse completed==========\n\n"
 
@@ -448,8 +453,8 @@ class MainWindow(QMainWindow):
                     "==========DTD or Display Descriptor parse started==========\n"
                 )
 
-                if "perfered_timing" in dtd:
-                    formatted_text += f"首選時序解析度: {dtd['perfered_timing']}\n"
+                if "perferred_timing" in dtd:
+                    formatted_text += f"首選時序解析度: {dtd['perferred_timing']}\n"
                 if "dtd_timing" in dtd:
                     valid_timings = [
                         timing for timing in dtd["dtd_timing"] if timing
@@ -547,9 +552,16 @@ class MainWindow(QMainWindow):
                 for tag in cta.get("TagCodeInfo", []):
                     if "CEC_PA" in tag:
                         formatted_text += f"CEC PA {tag['CEC_PA']}\n"
-                        formatted_text += f"支援解析度 {tag.get('res_support', '')}\n"
-                        formatted_text += f"位元深度 {tag.get('color_depths', '')}\n"
-                        formatted_text += f"{tag.get('rgb_444_support', '')}\n"
+                        if "res_support" in tag:
+                            formatted_text += (
+                                f"支援解析度 {tag.get('res_support', '')}\n"
+                            )
+                        if "color_depths" in tag:
+                            formatted_text += (
+                                f"位元深度 {tag.get('color_depths', '')}\n"
+                            )
+                        if "rgb_444_support" in tag:
+                            formatted_text += f"{tag.get('rgb_444_support', '')}\n"
                         break
                 formatted_text += "========== VSDB parse ended ==========\n\n"
 
@@ -573,6 +585,7 @@ class MainWindow(QMainWindow):
 
                 for tag in cta.get("TagCodeInfo", []):
                     if "YCbCr 4:2:0 Capability Map Data Block" in tag:
+
                         formatted_text += (
                             f"{tag['YCbCr 4:2:0 Capability Map Data Block']}\n"
                         )
@@ -623,132 +636,8 @@ class MainWindow(QMainWindow):
 
         if info_type == "完整檢視":
             return self.format_edid_data(self.parsed_data)
-        # elif info_type == "基本資訊":
-        #     return self.get_basic_info()
-        # elif info_type == "時序資訊":
-        #     return self.get_timing_info()
-        # elif info_type == "音訊資訊":
-        #     return self.get_audio_info()
-        # elif info_type == "HDR支援":
-        #     return self.get_hdr_info()
         else:
             return self.format_edid_data(self.parsed_data)
-
-    def get_basic_info(self):
-        """取得基本資訊"""
-        if not self.parsed_data:
-            return "無可用資料"
-
-        info = ""
-        try:
-            # Header 資訊
-            if (
-                "StandardBlockInfo" in self.parsed_data
-                and "HeaderInfo" in self.parsed_data["StandardBlockInfo"]
-            ):
-                header = self.parsed_data["StandardBlockInfo"]["HeaderInfo"]
-                info += "==========基本顯示器資訊==========\n"
-                info += f"製造商: {header.get('MF_id', 'N/A')}\n"
-                info += f"產品代碼: {header.get('product_code', 'N/A')}\n"
-                info += f"序列號碼: {header.get('serial_number', 'N/A')}\n"
-                info += f"製造日期: {header.get('MF_year', 'N/A')}年第{header.get('MF_week', 'N/A')}週\n"
-                info += f"EDID版本: {header.get('version', 'N/A')}\n"
-
-            # 產品名稱 (從 DTD 取得)
-            if (
-                "StandardBlockInfo" in self.parsed_data
-                and "DTDInfo" in self.parsed_data["StandardBlockInfo"]
-            ):
-                dtd = self.parsed_data["StandardBlockInfo"]["DTDInfo"]
-                if "dp_descriptor" in dtd and "SerialNumber" in dtd["dp_descriptor"]:
-                    info += f"序列號碼: {dtd['dp_descriptor']['SerialNumber']}\n"
-        except Exception as e:
-            info += f"取得基本資訊時發生錯誤: {str(e)}"
-
-        return info
-
-    def get_timing_info(self):
-        """取得時序資訊"""
-        if not self.parsed_data:
-            return "無可用資料"
-
-        info = "==========時序解析度資訊==========\n"
-        try:
-            # 首選時序
-            if (
-                "StandardBlockInfo" in self.parsed_data
-                and "DTDInfo" in self.parsed_data["StandardBlockInfo"]
-            ):
-                dtd = self.parsed_data["StandardBlockInfo"]["DTDInfo"]
-                if "perfered_timing" in dtd:
-                    info += f"首選時序: {dtd['perfered_timing']}\n"
-
-            # Display ID 時序
-            if (
-                "DisplayIDBlockInfo" in self.parsed_data
-                and "Type_I" in self.parsed_data["DisplayIDBlockInfo"]
-            ):
-                info += "\n高更新率時序:\n"
-                for timing in self.parsed_data["DisplayIDBlockInfo"]["Type_I"]:
-                    info += f"  {timing}\n"
-
-            # CTA 時序
-            if (
-                "CTABlockInfo" in self.parsed_data
-                and "DTDInfo" in self.parsed_data["CTABlockInfo"]
-            ):
-                cta_dtd = self.parsed_data["CTABlockInfo"]["DTDInfo"]
-                if "dtd_timing" in cta_dtd:
-                    info += "\n其他支援時序:\n"
-                    for timing in cta_dtd["dtd_timing"]:
-                        info += f"  {timing}\n"
-
-        except Exception as e:
-            info += f"取得時序資訊時發生錯誤: {str(e)}"
-
-        return info
-
-    def get_audio_info(self):
-        """取得音訊資訊"""
-        if not self.parsed_data:
-            return "無可用資料"
-
-        info = "==========音訊支援資訊==========\n"
-        try:
-            if "CTABlockInfo" in self.parsed_data:
-                cta = self.parsed_data["CTABlockInfo"]
-                for tag in cta.get("TagCodeInfo", []):
-                    if "descriptor" in tag and "L-PCM" in tag["descriptor"]:
-                        info += f"音訊格式: {tag['descriptor']}\n"
-                    if "descriptor" in tag and "FL/FR" in tag["descriptor"]:
-                        info += f"喇叭配置: {tag['descriptor']}\n"
-        except Exception as e:
-            info += f"取得音訊資訊時發生錯誤: {str(e)}"
-
-        return info
-
-    def get_hdr_info(self):
-        """取得 HDR 支援資訊"""
-        if not self.parsed_data:
-            return "無可用資料"
-
-        info = "==========HDR 支援資訊==========\n"
-        try:
-            if "CTABlockInfo" in self.parsed_data:
-                cta = self.parsed_data["CTABlockInfo"]
-                for tag in cta.get("TagCodeInfo", []):
-                    if "HDR Static Metadata Data Block" in tag:
-                        info += f"{tag['HDR Static Metadata Data Block']}\n"
-                    if "YCbCr 4:2:0 Capability Map Data Block" in tag:
-                        info += f"{tag['YCbCr 4:2:0 Capability Map Data Block']}\n"
-                    if "color_depths" in tag:
-                        info += f"位元深度支援: {tag['color_depths']}\n"
-                    if "rgb_444_support" in tag:
-                        info += f"色彩格式: {tag['rgb_444_support']}\n"
-        except Exception as e:
-            info += f"取得HDR資訊時發生錯誤: {str(e)}"
-
-        return info
 
     def update_display(self):
         """更新顯示內容基於選擇的資訊類型"""

@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 
-class HeaderInfoData(TypedDict):
+class HeaderInfoData(TypedDict, total=False):
     MF_id: str
     product_code: str
     serial_number: str
@@ -24,7 +24,7 @@ class EstTimingItem(TypedDict):
 
 
 class DTDInfoData(TypedDict, total=False):
-    perfered_timing: str
+    perferred_timing: str
     dtd_timing: list[str]
     dp_descriptor: dict[str, dict[str, str]]
 
@@ -35,7 +35,7 @@ class TimingInfoData(TypedDict):
     Established_2: list[EstTimingItem]
 
 
-class StandardBlockResult(TypedDict):
+class StandardBlockResult(TypedDict, total=False):
     HeaderInfo: HeaderInfoData
     TimingInfo: TimingInfoData
     DTDInfo: DTDInfoData

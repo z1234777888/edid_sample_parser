@@ -27,6 +27,7 @@ class HeaderInfo:
     @staticmethod
     def parse_manager(edid_data: bytes) -> HeaderInfoData:
         """組合標頭數據"""
+        result: HeaderInfoData = {}
         print()
         print(f"{'='*10}header parse started{'='*10}")
         HeaderParams.MF_id = HeaderInfo._parse_manufacturer_id(edid_data)
@@ -38,16 +39,17 @@ class HeaderInfo:
 
         print(f"製造商ID\t{HeaderParams.MF_id}")
         print(f"產品代碼\t{HeaderParams.product_code}")
-        print(f"序列號碼\t{HeaderParams.serial_number}")
-        print(f"製造週數\t{HeaderParams.MF_week}")
-        print(f"製造年份\t{HeaderParams.MF_year}")
+        if ENGINEERING:
+            result["serial_number"] = HeaderParams.serial_number
+            result["MF_week"] = HeaderParams.MF_week
+            result["MF_year"] = HeaderParams.MF_year
+            print(f"序列號碼\t{HeaderParams.serial_number}")
+            print(f"製造週數\t{HeaderParams.MF_week}")
+            print(f"製造年份\t{HeaderParams.MF_year}")
         print(f"EDID版本\t{HeaderParams.version}")
-        result: HeaderInfoData = {
+        result = {
             "MF_id": HeaderParams.MF_id,
             "product_code": HeaderParams.product_code,
-            "serial_number": HeaderParams.serial_number,
-            "MF_week": HeaderParams.MF_week,
-            "MF_year": HeaderParams.MF_year,
             "version": HeaderParams.version,
         }
         print(f"{'='*10}header parse completed{'='*10}")
@@ -357,7 +359,9 @@ class DTDParams:
     FIRST_DESCRIPTOR_ADDR = 0x36  # perferred timing 的位址
     DESCRIPTOR_SIZE = 18  # 每個DTD或display descriptor的大小
     EDID_BLOCK_SIZE = 128  # EDID的最大長度
-    perfered_timing = "Undefined"
+    perferred_timing_info = "Undefined"
+    perferred_HActive: int = 0
+    perferred_VActive: int = 0
     timing_resolution = "Undefined"
     DESCRIPTOR_TAGS = {
         0xFF: "display_serial_number",
@@ -393,9 +397,9 @@ class DTDInfo:
         if block[:8] == bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]):
             DTDInfo.parse_perfered_timing(block)
             current_addr += DTDParams.DESCRIPTOR_SIZE  # 取得下一個DTD的位址
-            perfered_timing = DTDParams.perfered_timing
-            print(f"首選時序解析度: {perfered_timing}")
-            result["perfered_timing"] = perfered_timing
+            perferred_timing = DTDParams.perferred_timing_info
+            print(f"首選時序解析度: {perferred_timing}")
+            result["perferred_timing"] = perferred_timing
             dtd_len = 3
 
         # 最多3組
@@ -494,9 +498,11 @@ class DTDInfo:
         freq = int(round(refresh_rate, 0))
 
         if offset == DTDParams.FIRST_DESCRIPTOR_ADDR:
-            DTDParams.perfered_timing = (
+            DTDParams.perferred_timing_info = (
                 f"{h_active}x{v_active} @{freq}Hz - {pixel_clock}MHz"
             )
+            DTDParams.perferred_HActive = h_active
+            DTDParams.perferred_VActive = v_active
         else:
             DTDParams.timing_resolution = (
                 f"{h_active}x{v_active} @{freq}Hz - {pixel_clock}MHz"

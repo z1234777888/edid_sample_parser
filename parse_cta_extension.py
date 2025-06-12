@@ -2,6 +2,7 @@ from enum import IntEnum
 from vic import video_formats
 from parse_standard import get_freq
 from vic_to_resolution import clock_to_formats
+from parse_standard import DTDParams
 
 
 class TagCode(IntEnum):
@@ -107,7 +108,7 @@ class ParseYCbCr420CapabilityMap:
             res: 對應的解析結果列表
         """
         data_bytes = block[current_offset:end_offset]
-
+        YCbCr420CapParams.resolution.clear()
         bit_index = 0
         for byte_data in data_bytes:
             for bit_position in range(8):
@@ -226,19 +227,7 @@ def identify_extended_tag(tag_code: int) -> str:
 
 class VSDBParams:
     HDMI_IEEE_ID = 0x000C03
-    ieee_id: str = ""
-    CEC_PA: str = ""
-    res_support: list[str] = []
-    tmds_clock: int = 0
-    color_depths: list[str] = []
-    ycbcr_444_support: bool = False
-    Resolution = {
-        0: (1920, 1080),
-        1: (2560, 1440),
-        2: (3840, 2160),
-        3: (7680, 4320),
-        4: (10240, 4320),
-    }
+
     dc_bit = {
         0: "10",
         1: "12",
@@ -251,10 +240,10 @@ class ParseVSDBBlock:
     def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析VSDB區塊"""
         info: dict[str, str] = {}
-        VSDBParams.ieee_id = (
+        ieee_id = (
             f"{block[offset] | block[offset + 1] << 8 | block[offset + 2] << 16:06x}"
         )
-        if VSDBParams.ieee_id == f"{VSDBParams.HDMI_IEEE_ID :06x}":
+        if ieee_id == f"{VSDBParams.HDMI_IEEE_ID :06x}":
             print()
             print(f"{'='*10} VSDB parse started {'='*10}")
             # 剩餘資料為廠商自定義內容
@@ -316,11 +305,11 @@ class ParseVSDBBlock:
 
         if len(vendor_data) >= 4:
             tmds_clock = vendor_data[3] * 5
-            for i in range(len(VSDBParams.Resolution)):
-                h, v = VSDBParams.Resolution[i]
-                freq = get_freq(h, v, tmds_clock, clock_to_formats)
-                if freq != 0:
-                    res_support.append("".join([f"{h}x{v} @{freq}Hz"]))
+
+            h, v = DTDParams.perferred_HActive, DTDParams.perferred_VActive
+            freq = get_freq(h, v, tmds_clock, clock_to_formats)
+            if freq != 0:
+                res_support.append(f"{h}x{v} @{freq}Hz" + f" - {tmds_clock} MHz")
 
         return cec_pa, res_support, color_depths, ycbcr_444_support
 
