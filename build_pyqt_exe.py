@@ -93,7 +93,7 @@ def create_exe_with_better_optimization():
         "--onefile",
         "--noconsole",
         "--clean",
-        "--name=簡約版EDID讀取器 V1.0",
+        "--name=EDID解析器 v1.0",
         "--icon=" + icon_path,
         # 加入所有相關的 Python 檔案
         "--add-data=edid_main.py;.",
@@ -110,8 +110,7 @@ def create_exe_with_better_optimization():
         "--uac-admin",
         "--windowed",
         # 優化選項
-        # "--optimize=2",  # Python 字節碼優化
-        # "--strip",  # 移除除錯符號
+        "--optimize=2",  # Python 字節碼優化
         "--noupx",  # 不使用 UPX 壓縮（可能導致防毒軟體誤報）
     ]
 
@@ -130,19 +129,5 @@ def create_exe_with_better_optimization():
 
 
 if __name__ == "__main__":
-    print("選擇打包方式:")
-    print("1. 使用外部圖示檔案（原版）")
-    print("2. 不使用外部圖示檔案（純內嵌）")
-    print("3. 優化版本")
 
-    choice = input("請選擇 (1/2/3): ").strip()
-
-    if choice == "1":
-        create_exe()
-    elif choice == "2":
-        create_exe_without_external_icon()
-    elif choice == "3":
-        create_exe_with_better_optimization()
-    else:
-        print("使用預設方式...")
-        create_exe()
+    create_exe_with_better_optimization()

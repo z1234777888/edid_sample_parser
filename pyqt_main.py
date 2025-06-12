@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.last_info_type_selection = "完整檢視"  # 保存下拉選單狀態或首次狀態
         self.is_dark_mode = False
-        self.parsed_data_list: list[TotalResult] = edid_parser()
+        self.parsed_data_list: list[TotalResult] = []
         self.separator_lines = False
         self.themes = {
             "light": """
@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("EDID 解析工具")
+        self.setWindowTitle("EDID解析器")
 
         self.setWindowIcon(get_branch_icon())
         self.resize(840, 550)
