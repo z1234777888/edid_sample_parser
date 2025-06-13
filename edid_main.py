@@ -15,7 +15,7 @@ from datatypes import TotalResult
 
 def format_bytes(data: bytes):
     # 將 bytes 轉換為十六進位字串，每兩個字元一組
-    hex_str = data.hex()
+    hex_str = data.hex().upper()
     pairs = [hex_str[i : i + 2] for i in range(0, len(hex_str), 2)]
 
     # 每16組加換行符號

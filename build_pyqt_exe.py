@@ -37,11 +37,9 @@ def create_exe_with_better_optimization():
     # PyQt6 相關依賴
     args.extend(
         [
-            "--hidden-import=PyQt6",
             "--hidden-import=PyQt6.QtCore",
             "--hidden-import=PyQt6.QtGui",
             "--hidden-import=PyQt6.QtWidgets",
-            "--hidden-import=PyQt6.sip",
         ]
     )
 

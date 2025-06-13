@@ -7,11 +7,12 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QTextEdit,
-    QComboBox,
 )
-from PyQt6.QtWidgets import QLabel, QPushButton
+from datetime import datetime
+
+from PyQt6.QtWidgets import QLabel, QPushButton, QFileDialog, QMessageBox
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QTextCursor
 
 from edid_main import main as edid_parser
 from datatypes import TotalResult
@@ -105,7 +106,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("EDID解析器")
 
         self.setWindowIcon(get_branch_icon())
-        self.resize(840, 550)
+        self.resize(800, 500)
 
         # Create central widget and layout
         central_widget = QWidget()
@@ -136,25 +137,18 @@ class MainWindow(QMainWindow):
         # Other controls
         self.refresh_btn = QPushButton("重新整理顯示器資訊")
         self.export_btn = QPushButton("匯出資訊")
-        self.export_edid_btn = QPushButton("僅匯出EDID")
+
         self.theme_btn = QPushButton("切換夜間模式")
 
         self.labels = [font_label, self.font_size_label]
-        self.info_type = QComboBox()
-        # 添加下拉選單選項
-        self.info_type.addItems(
-            ["完整檢視", "基本資訊", "時序資訊", "音訊資訊", "HDR支援"]
-        )
 
         # Add controls to toolbar
         toolbar.addWidget(font_label)
         toolbar.addWidget(self.decrease_btn)
         toolbar.addWidget(self.font_size_label)
         toolbar.addWidget(self.increase_btn)
-        # toolbar.addWidget(self.info_type)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.export_btn)
-        toolbar.addWidget(self.export_edid_btn)
         toolbar.addStretch()
         toolbar.addWidget(self.theme_btn)
 
@@ -168,14 +162,13 @@ class MainWindow(QMainWindow):
             self.refresh_btn,
             self.export_btn,
             self.theme_btn,
-            self.export_edid_btn,
         ]
         # Connect font size buttons
         self.decrease_btn.clicked.connect(self.decrease_font_size)  # type: ignore
         self.increase_btn.clicked.connect(self.increase_font_size)  # type: ignore
         self.refresh_btn.clicked.connect(self.refresh_monitor_info)  # type: ignore
+        self.export_btn.clicked.connect(self.export_info)  # type: ignore
         self.theme_btn.clicked.connect(self.toggle_theme)  # type: ignore
-        self.info_type.currentTextChanged.connect(self.update_display)  # type: ignore
 
         # Initial refresh
         self.refresh_monitor_info()
@@ -195,6 +188,126 @@ class MainWindow(QMainWindow):
             font = self.text_display.font()
             font.setPointSize(new_size)
             self.text_display.setFont(font)
+
+    def export_info(self):
+        """Export the display information to various file formats"""
+        monitor_content = self.text_display.toPlainText()
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 修改檔案類型選項，加入 bin 格式
+        file_types = "Text Files (*.txt);;" "HTML Files (*.html);;" "All Files (*.*)"
+
+        filename, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "儲存檔案",
+            f"EDID_Info_{timestamp}",
+            file_types,
+        )
+
+        if not filename:  # 用户取消了对话框
+            return
+
+        try:
+            # 根据选择的文件类型或文件扩展名处理不同格式
+            if selected_filter.startswith("Text Files") or filename.lower().endswith(
+                ".txt"
+            ):
+                self._export_as_txt(filename, monitor_content)
+            elif selected_filter.startswith("HTML Files") or filename.lower().endswith(
+                ".html"
+            ):
+                self._export_as_html(filename, monitor_content)
+
+            else:
+                # 默认导出为文本格式
+                self._export_as_txt(filename, monitor_content)
+
+            # 显示成功消息
+            QMessageBox.information(
+                self, "導出成功", f"EDID信息已成功導出到:\n{filename}"
+            )
+
+        except Exception as e:
+            # 显示错误消息
+            QMessageBox.critical(self, "導出失敗", f"導出文件時發生錯誤:\n{str(e)}")
+
+    def _export_as_txt(self, filename: str, content: str):
+        """導出txt格式"""
+        # 如果文件名没有扩展名，添加.txt
+        if not filename.lower().endswith(".txt"):
+            filename += ".txt"
+
+        with open(filename, "w", encoding="utf-8") as f:
+            # 加入標題
+            f.write("=" * 60 + "\n")
+            f.write("EDID 顯示器信息導出\n")
+            f.write(f"導出時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 60 + "\n\n")
+
+            # 寫入主要内容
+            f.write(content)
+
+            # 添加文件尾部信息
+            f.write("\n\n" + "=" * 60 + "\n")
+            f.write("導出完成\n")
+            f.write("=" * 60 + "\n")
+
+    def _export_as_html(self, filename: str, content: str):
+        """導出HTML格式"""
+        if not filename.lower().endswith(".html"):
+            filename += ".html"
+
+        html_content = content.replace("\n", "<br>\n").replace(" ", "&nbsp;")
+
+        html_template = f"""<!DOCTYPE html>
+    <html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>EDID 顯示器信息</title>
+        <style>
+            body {{
+                font-family: insolata, monospace;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }}
+            .container {{
+                background-color: white;
+                padding: 20px;
+                border-radius: 5px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }}
+            h1, h2 {{
+                color: #333;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+            }}
+            pre {{
+                background-color: #f8f9fa;
+                padding: 15px;
+                border-radius: 4px;
+                overflow-x: auto;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>EDID 顯示器信息</h1>
+                <p class="timestamp">導出時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            </div>
+            <div class="content">
+    {html_content}
+            </div>
+        </div>
+    </body>
+    </html>"""
+
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(html_template)
 
     def remove_start_end_lines_specific(self, text: str) -> str:
         """針對特定格式的分隔線進行清理"""
@@ -629,29 +742,21 @@ class MainWindow(QMainWindow):
 
         return formatted_text
 
-    def get_filtered_display(self, info_type: str):
-        """根據選擇的資訊類型過濾顯示內容"""
-        if not self.parsed_data:
-            return "無可用資料"
-
-        if info_type == "完整檢視":
-            return self.format_edid_data(self.parsed_data)
-        else:
-            return self.format_edid_data(self.parsed_data)
-
     def update_display(self):
         """更新顯示內容基於選擇的資訊類型"""
         for index in range(len(self.parsed_data_list)):
             self.parsed_data = self.parsed_data_list[index]
             if self.parsed_data:
-                # 根據當前選擇的資訊類型顯示內容
-                selected_type = self.info_type.currentText()
-                content = self.get_filtered_display(selected_type)
+
+                content = self.format_edid_data(self.parsed_data)
                 self.text_display.append(f"{'='*32}第{index+1}個顯示器資訊{'='*32}")
                 self.text_display.append(content)
             else:
                 self.text_display.clear()
                 self.text_display.append("無法讀取顯示器資訊，請確認顯示器連接正常")
+
+        # 更新完內容移動游標到內容的開頭
+        self.text_display.moveCursor(QTextCursor.MoveOperation.Start)
 
     def refresh_monitor_info(self):
         """Refresh monitor information"""
