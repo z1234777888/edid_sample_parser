@@ -5,7 +5,7 @@ a = Analysis(
     ['pyqt_main.py'],
     pathex=[],
     binaries=[],
-    datas=[('edid_main.py', '.'), ('datatypes.py', '.'), ('monitor_info.py', '.'), ('block_map_classify.py', '.'), ('parse_cta_extension.py', '.'), ('parse_displayid.py', '.'), ('parse_standard.py', '.'), ('validator.py', '.'), ('vic_to_resolution.py', '.'), ('vic.py', '.')],
+    datas=[('edid_main.py', '.'), ('datatypes.py', '.'), ('monitor_info.py', '.'), ('block_map_classify.py', '.'), ('parse_cta_extension.py', '.'), ('parse_displayid.py', '.'), ('parse_standard.py', '.'), ('validator.py', '.'), ('vic_to_resolution.py', '.'), ('vic.py', '.'), ('embedded_fonts.py', '.')],
     hiddenimports=['PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets'],
     hookspath=[],
     hooksconfig={},

@@ -1,4 +1,5 @@
 import sys
+
 from branch_ico import get_branch_icon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -19,12 +20,16 @@ from datatypes import TotalResult
 from typing import List, Dict, Match
 import re
 
+# 內嵌字體 Inconsolata SemiExpanded
+from embedded_fonts import load_embedded_fonts
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.last_info_type_selection = "完整檢視"  # 保存下拉選單狀態或首次狀態
         self.is_dark_mode = False
+
         self.parsed_data_list: list[TotalResult] = []
         self.separator_lines = False
         self.themes = {
@@ -60,7 +65,7 @@ class MainWindow(QMainWindow):
                     background-color: #F5F5F5;
                     color: #000000;
                     border: 1px solid #CCCCCC;
-                    font-family: "Cascadia Mono Light";
+                    font-family: Inconsolata semiexpanded;
                 }
             """,
             "dark": """
@@ -95,7 +100,7 @@ class MainWindow(QMainWindow):
                     background-color: #2D2D2D;
                     color: #58c2e5;
                     border: 1px solid #3D3D3D;
-                    font-family: "Cascadia Mono Light";
+                    font-family: Inconsolata semiexpanded;
                 }
             """,
         }
@@ -106,7 +111,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("EDID解析器")
 
         self.setWindowIcon(get_branch_icon())
-        self.resize(800, 500)
+        self.resize(840, 500)
 
         # Create central widget and layout
         central_widget = QWidget()
@@ -120,27 +125,32 @@ class MainWindow(QMainWindow):
         font_label = QLabel("字體大小:")
         self.decrease_btn = QPushButton("-")
         self.decrease_btn.setFixedWidth(30)
-        self.font_size_label = QLabel("12")
+        self.font_size_label = QLabel("13")
         self.font_size_label.setFixedWidth(30)
         self.font_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.increase_btn = QPushButton("+")
         self.increase_btn.setFixedWidth(30)
+
+        # 顯示器數量label
+        self.monitor_count_label = QLabel("目前顯示器數量: 0")
+        self.monitor_count_label.setStyleSheet("margin-left: 60px;")  # 加一些間距
 
         # Create text display
         self.text_display = QTextEdit()
         self.text_display.setReadOnly(True)
         self.text_display.setAcceptRichText(True)  # 允許富文本
 
-        font = QFont("Cascadia Mono Light", 12)
-        self.text_display.setFont(font)
+        # INCONSOLATA_SEMIEXPANDED-REGULAR
+        font_family = load_embedded_fonts()
 
+        self.text_display.setFont(QFont(font_family, int(self.font_size_label.text())))
         # Other controls
         self.refresh_btn = QPushButton("重新整理顯示器資訊")
         self.export_btn = QPushButton("匯出資訊")
 
         self.theme_btn = QPushButton("切換夜間模式")
 
-        self.labels = [font_label, self.font_size_label]
+        self.labels = [font_label, self.font_size_label, self.monitor_count_label]
 
         # Add controls to toolbar
         toolbar.addWidget(font_label)
@@ -149,6 +159,8 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.increase_btn)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.export_btn)
+        toolbar.addWidget(self.monitor_count_label)
+
         toolbar.addStretch()
         toolbar.addWidget(self.theme_btn)
 
@@ -268,7 +280,7 @@ class MainWindow(QMainWindow):
         <title>EDID 顯示器信息</title>
         <style>
             body {{
-                font-family: insolata, monospace;
+                font-family: Inconsolata SemiExpanded;
                 max-width: 1200px;
                 margin: 0 auto;
                 padding: 20px;
@@ -749,8 +761,9 @@ class MainWindow(QMainWindow):
             if self.parsed_data:
 
                 content = self.format_edid_data(self.parsed_data)
-                self.text_display.append(f"{'='*32}第{index+1}個顯示器資訊{'='*32}")
+                self.text_display.append(f"{'='*18}第{index+1}個顯示器資訊{'='*18}")
                 self.text_display.append(content)
+                self.monitor_count_label.setText(f"目前顯示器數量: {index+1}")
             else:
                 self.text_display.clear()
                 self.text_display.append("無法讀取顯示器資訊，請確認顯示器連接正常")
@@ -793,6 +806,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

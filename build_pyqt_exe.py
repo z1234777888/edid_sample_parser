@@ -26,6 +26,7 @@ def create_exe_with_better_optimization():
         "--add-data=validator.py;.",
         "--add-data=vic_to_resolution.py;.",
         "--add-data=vic.py;.",
+        "--add-data=embedded_fonts.py;.",
         # 權限和視窗設定
         "--uac-admin",
         "--windowed",
