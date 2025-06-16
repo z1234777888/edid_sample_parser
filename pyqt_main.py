@@ -1,6 +1,6 @@
 import sys
 
-from branch_ico import get_branch_icon
+from icon.branch_ico import get_branch_icon
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -21,7 +21,7 @@ from typing import List, Dict, Match
 import re
 
 # 內嵌字體 Inconsolata SemiExpanded
-from embedded_fonts import load_embedded_fonts
+from fonts.embedded_fonts import load_embedded_fonts
 
 
 class MainWindow(QMainWindow):
@@ -67,6 +67,12 @@ class MainWindow(QMainWindow):
                     border: 1px solid #CCCCCC;
                     font-family: Inconsolata semiexpanded;
                 }
+                QMessageBox {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                    border: 1px solid #CCCCCC;
+                    font-family: Inconsolata semiexpanded;
+                }
             """,
             "dark": """
                 QMainWindow {
@@ -100,6 +106,12 @@ class MainWindow(QMainWindow):
                     background-color: #2D2D2D;
                     color: #58c2e5;
                     border: 1px solid #3D3D3D;
+                    font-family: Inconsolata semiexpanded;
+                }
+                QMessageBox {
+                    background-color: #1E1E1E;
+                    color: #58c2e5;
+                    border: 1px solid #2D2D2D;
                     font-family: Inconsolata semiexpanded;
                 }
             """,
@@ -329,7 +341,7 @@ class MainWindow(QMainWindow):
             r"^=+ .* parse ended =+$",
             r"^=+ .* parse completed =+$",
             r"^=+.*parse started=+$",
-            r"^=+.*parse completed=+$",
+            r"^=+.*parse completed =+$",
         ]
 
         result = text
@@ -348,8 +360,18 @@ class MainWindow(QMainWindow):
         # 定義區塊模式和對應的標題
         section_patterns: List[Dict[str, str]] = [
             {
-                "start": "==========edid raw data parse started==========",
-                "end": "==========edid raw data parse completed==========",
+                "start": "========== Extension Block Count parse started ==========",
+                "end": "========== Extension Block Count parse ended ==========",
+                "title": "Extension Block Count",
+            },
+            {
+                "start": "========== checksum parse started ==========",
+                "end": "========== checksum parse ended ==========",
+                "title": "Checksum",
+            },
+            {
+                "start": "========== edid raw data parse started ==========",
+                "end": "========== edid raw data parse completed ==========",
                 "title": "EDID Raw Data",
             },
             {
@@ -383,28 +405,28 @@ class MainWindow(QMainWindow):
                 "title": "YCbCr 4:2:0 支援區塊",
             },
             {
-                "start": "==========DTD or Display Descriptor parse started==========",
-                "end": "==========DTD or Display Descriptor parse completed==========",
+                "start": "========== DTD or Display Descriptor parse started ==========",
+                "end": "========== DTD or Display Descriptor parse completed ==========",
                 "title": "詳細時序描述區塊 (Detailed Timing Descriptor)",
             },
             {
-                "start": "==========display id parse started==========",
-                "end": "==========display id parse completed==========",
+                "start": "========== display id parse started ==========",
+                "end": "========== display id parse completed ==========",
                 "title": "顯示器 ID 區塊 (Display ID Block)",
             },
             {
-                "start": "==========header parse started==========",
-                "end": "==========header parse completed==========",
+                "start": "========== header parse started ==========",
+                "end": "========== header parse completed ==========",
                 "title": "基本顯示器資訊 (Header Information)",
             },
             {
-                "start": "==========established timing parse started==========",
-                "end": "==========established timing parse completed==========",
+                "start": "========== established timing parse started ==========",
+                "end": "========== established timing parse completed ==========",
                 "title": "標準時序區塊 (Established Timing)",
             },
             {
-                "start": "==========standard timing parse started==========",
-                "end": "==========standard timing parse completed==========",
+                "start": "========== standard timing parse started ==========",
+                "end": "========== standard timing parse completed ==========",
                 "title": "標準時序區塊 (Standard Timing)",
             },
         ]
@@ -455,15 +477,15 @@ class MainWindow(QMainWindow):
             # YCbCr 4:2:0 Capability Map
             "========== YCbCr 4:2:0 Capability Map parse started ==========\n========== YCbCr 4:2:0 Capability Map parse ended ==========",
             # DTD or Display Descriptor
-            "==========DTD or Display Descriptor parse started==========\n==========DTD or Display Descriptor parse completed==========",
+            "========== DTD or Display Descriptor parse started ==========\n========== DTD or Display Descriptor parse completed ==========",
             # Display ID
-            "==========display id parse started==========\n==========display id parse completed==========",
+            "========== display id parse started ==========\n========== display id parse completed ==========",
             # Header
-            "==========header parse started==========\n==========header parse completed==========",
+            "========== header parse started ==========\n========== header parse completed ==========",
             # Established Timing
-            "==========established timing parse started==========\n==========established timing parse completed==========",
+            "========== established timing parse started ==========\n========== established timing parse completed ==========",
             # Standard Timing
-            "==========standard timing parse started==========\n==========standard timing parse completed==========",
+            "========== standard timing parse started ==========\n========== standard timing parse completed ==========",
         ]
 
         # 逐一移除所有空區塊
@@ -499,7 +521,7 @@ class MainWindow(QMainWindow):
             ):
                 header = data["StandardBlockInfo"]["HeaderInfo"]
 
-                formatted_text += "==========header parse started==========\n"
+                formatted_text += "========== header parse started ==========\n"
 
                 formatted_text += f"製造商ID        {header.get('MF_id', 'N/A')}\n"
                 formatted_text += (
@@ -516,7 +538,7 @@ class MainWindow(QMainWindow):
                         f"製造年份        {header.get('MF_year', 'N/A')}\n"
                     )
                 formatted_text += f"EDID版本        {header.get('version', 'N/A')}\n"
-                formatted_text += "==========header parse completed==========\n\n"
+                formatted_text += "========== header parse completed ==========\n\n"
 
             # # Established Timing 資訊(低解析度不具參考價值)
             # if (
@@ -525,7 +547,7 @@ class MainWindow(QMainWindow):
             # ):
             #     timing = data["StandardBlockInfo"]["TimingInfo"]
             #     formatted_text += (
-            #         "==========established timing parse started==========\n"
+            #         "========== established timing parse started ==========\n"
             #     )
 
             #     if "Established_1" in timing:
@@ -555,12 +577,12 @@ class MainWindow(QMainWindow):
             #                 formatted_text += f"{est['resolution']} @ {est['refresh_rate']}Hz ({est['source']})\n"
 
             #     formatted_text += (
-            #         "==========established timing parse completed==========\n\n"
+            #         "========== established timing parse completed ==========\n\n"
             #     )
 
             #     # Standard Timing 資訊
             #     formatted_text += (
-            #         "==========standard timing parse started==========\n"
+            #         "========== standard timing parse started ==========\n"
             #     )
 
             #     if "Standard" in timing:
@@ -568,14 +590,14 @@ class MainWindow(QMainWindow):
             #             if std["h_res"] != "Undefined":
             #                 formatted_text += f"{std['h_res']}x{std['v_res']} @ {std['refresh_rate']}Hz ({std['aspect_ratio']})\n"
             #     formatted_text += (
-            #         "==========standard timing parse completed==========\n\n"
+            #         "========== standard timing parse completed ==========\n\n"
             #     )
 
             # DTD 資訊
             if "StandardBlockInfo" in data and "DTDInfo" in data["StandardBlockInfo"]:
                 dtd = data["StandardBlockInfo"]["DTDInfo"]
                 formatted_text += (
-                    "==========DTD or Display Descriptor parse started==========\n"
+                    "========== DTD or Display Descriptor parse started ==========\n"
                 )
 
                 if "perferred_timing" in dtd:
@@ -616,9 +638,7 @@ class MainWindow(QMainWindow):
                             "SerialNumber"
                         ]
                         formatted_text += f"序列號碼: {serial_number}\n"
-                formatted_text += (
-                    "==========DTD or Display Descriptor parse completed==========\n\n"
-                )
+                formatted_text += "========== DTD or Display Descriptor parse completed ==========\n\n"
 
             # CTA Block 資訊
             if "CTABlockInfo" in data:
@@ -722,27 +742,39 @@ class MainWindow(QMainWindow):
 
                 # CTA DTD 資訊
                 if "DTDInfo" in cta and "dtd_timing" in cta["DTDInfo"]:
-                    formatted_text += (
-                        "==========DTD or Display Descriptor parse started==========\n"
-                    )
+                    formatted_text += "========== DTD or Display Descriptor parse started ==========\n"
 
                     for timing in cta["DTDInfo"]["dtd_timing"]:
                         formatted_text += f"時序解析度: {timing}\n"
-                    formatted_text += "==========DTD or Display Descriptor parse completed==========\n\n"
+                    formatted_text += "========== DTD or Display Descriptor parse completed ==========\n\n"
 
             # Display ID Block
             if "DisplayIDBlockInfo" in data and "Type_I" in data["DisplayIDBlockInfo"]:
-                formatted_text += "==========display id parse started==========\n"
+                formatted_text += "========== display id parse started ==========\n"
 
                 for timing in data["DisplayIDBlockInfo"]["Type_I"]:
                     formatted_text += f"時序解析度: {timing}\n"
-                formatted_text += "==========display id parse completed==========\n"
+                formatted_text += "========== display id parse completed ==========\n"
 
             if "EDIDRawData" in data:
-                formatted_text += "==========edid raw data parse started==========\n"
+                formatted_text += "========== edid raw data parse started ==========\n"
                 formatted_text += f"{data['EDIDRawData']}\n"
                 formatted_text += (
-                    "==========edid raw data parse completed==========\n\n"
+                    "========== edid raw data parse completed ==========\n\n"
+                )
+            if "Checksum" in data:
+                formatted_text += "========== checksum parse started ==========\n"
+                for index, checksum in enumerate(data["Checksum"]):
+                    formatted_text += f"block {index}: {checksum}\n"
+                formatted_text += "========== checksum parse ended ==========\n\n"
+
+            if "ExtensionNum" in data:
+                formatted_text += (
+                    "========== Extension Block Count parse started =========="
+                )
+                formatted_text += f"\n{data['ExtensionNum']}\n"
+                formatted_text += (
+                    "========== Extension Block Count parse ended ==========\n\n"
                 )
 
             formatted_text = self.add_titles(formatted_text)

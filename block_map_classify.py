@@ -1,13 +1,12 @@
 from typing import Dict
-from parse_standard import (
-    ENGINEERING,
+from parser.parse_standard import (
     HeaderInfo,
     BasicDisplayParameters,
     DTDInfo,
     TimingInfo,
 )
-from parse_cta_extension import ParseCTATagCode
-from parse_displayid import ParseDPBlock
+from parser.parse_cta_extension import ParseCTATagCode
+from parser.parse_displayid import ParseDPBlock
 from datatypes import (
     HeaderInfoData,
     TimingInfoData,
@@ -59,11 +58,10 @@ class ParseStandardBlock:
         # 標頭解析
         header_info: HeaderInfoData = HeaderInfo.parse_manager(block)
         # Basic Display Parameters 解析
-        if ENGINEERING:
-            BasicDisplayParameters.parse_manager(block)
+        BasicDisplayParameters.parse_manager(block)
 
-            timing_info: TimingInfoData = TimingInfo.parse_manager(block)
-            result["TimingInfo"] = timing_info
+        timing_info: TimingInfoData = TimingInfo.parse_manager(block)
+        result["TimingInfo"] = timing_info
         # DTD 解析，只有CTA擴展區才需要額外宣告offset
         DTD_info: DTDInfoData = DTDInfo.parse_manager(block)
         # 組合結果

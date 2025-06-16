@@ -55,3 +55,5 @@ class TotalResult(TypedDict, total=False):
     CTABlockInfo: CTABlockResult
     DisplayIDBlockInfo: DisplayIDBlockResult
     EDIDRawData: str
+    Checksum: list[str]
+    ExtensionNum: str

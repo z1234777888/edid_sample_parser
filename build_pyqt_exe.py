@@ -6,7 +6,7 @@ def create_exe_with_better_optimization():
     """
     優化版本：加入更多優化選項
     """
-    icon_path = os.path.abspath("branch.ico")
+    icon_path = os.path.abspath("icon/branch.ico")
 
     args = [
         "pyqt_main.py",
@@ -20,13 +20,10 @@ def create_exe_with_better_optimization():
         "--add-data=datatypes.py;.",
         "--add-data=monitor_info.py;.",
         "--add-data=block_map_classify.py;.",
-        "--add-data=parse_cta_extension.py;.",
-        "--add-data=parse_displayid.py;.",
-        "--add-data=parse_standard.py;.",
+        "--add-data=parser;parser",
         "--add-data=validator.py;.",
-        "--add-data=vic_to_resolution.py;.",
-        "--add-data=vic.py;.",
-        "--add-data=embedded_fonts.py;.",
+        "--add-data=vic_data;vic_data",
+        "--add-data=fonts/embedded_fonts.py;fonts",
         # 權限和視窗設定
         "--uac-admin",
         "--windowed",

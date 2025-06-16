@@ -6,7 +6,6 @@ from block_map_classify import (
     ParseDisplayIDBlock,
 )
 from validator import StandardValidator
-from parse_standard import ENGINEERING
 from typing import List
 from enum import IntEnum
 
@@ -38,47 +37,6 @@ class BlockType(IntEnum):
     BLOCK_MAP = 3
 
 
-def extension_num(edid_data: bytes) -> bool:
-    """檢查擴展數是否正確，須放置全部的edid，而非單一block"""
-    # 計算總共有幾個完整的區塊
-    total_blocks = len(edid_data) // 128
-
-    # 取得擴充數量資料
-    expected_extensions = edid_data[126]
-    actual_extensions = total_blocks - 1
-    # 儲存結果
-    if actual_extensions == expected_extensions:
-        print("擴展數正確")
-        return True
-    else:
-        print("擴展數錯誤")
-        print("should be", expected_extensions)
-        print("but got", actual_extensions)
-        return False
-
-
-def check_sum(block: bytes) -> bool:
-
-    # 取得預期的checksum (最後一個位元組)，並格式化為兩位十六進制
-    expected_checksum = f"{block[-1]:02X}"
-
-    # 計算前127個位元組的總和
-    byte_sum = sum(block[:-1]) & 0xFF
-
-    # 計算checksum (0 減去總和的結果)，並格式化為兩位十六進制
-    actual_checksum = f"{(0 - byte_sum) & 0xFF:02X}"
-
-    # 比較預期的checksum 和實際的checksum
-    if expected_checksum == actual_checksum:
-        print("checksum 正確")
-        return True
-    else:
-        print("checksum 錯誤")
-        print("should be", expected_checksum)
-        print("but got", actual_checksum)
-        return False
-
-
 def EDID_parse_manager(raw_data: bytes) -> TotalResult:
     block_map = BlockMapBlock()
     sta = ParseStandardBlock()
@@ -86,6 +44,7 @@ def EDID_parse_manager(raw_data: bytes) -> TotalResult:
     dpid = ParseDisplayIDBlock()
     result: TotalResult = {}
 
+    check_sum_result: list[bool] = []
     for key, value in block_map.classify_blocks(raw_data).items():
         if key == BlockType.STANDARD:
             standard_block = value
@@ -102,10 +61,14 @@ def EDID_parse_manager(raw_data: bytes) -> TotalResult:
 
         elif key == BlockType.BLOCK_MAP:
             pass
-
-        if ENGINEERING:
-            check_sum(value)
-
+        check_sum_result.append(StandardValidator.check_sum(value))
+    # 比對擴展數
+    result["Checksum"] = [
+        "Checksum 正確" if x else "Checksum 錯誤" for x in check_sum_result
+    ]
+    result["ExtensionNum"] = (
+        "擴展數正確" if StandardValidator.extension_num(raw_data) else "擴展數錯誤"
+    )
     return result
 
 
@@ -134,9 +97,6 @@ def main() -> list[TotalResult]:
         EDID_info = EDID_parse_manager(raw_data)
         EDID_info["EDIDRawData"] = format_bytes(raw_data)
         EDID_info_list.append(EDID_info)
-        # 比對擴展數
-        if ENGINEERING:
-            extension_num(raw_data)
 
         """每次結束解析時,將raw_data拋出來"""
         print()

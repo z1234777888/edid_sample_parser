@@ -5,7 +5,7 @@ a = Analysis(
     ['pyqt_main.py'],
     pathex=[],
     binaries=[],
-    datas=[('edid_main.py', '.'), ('datatypes.py', '.'), ('monitor_info.py', '.'), ('block_map_classify.py', '.'), ('parse_cta_extension.py', '.'), ('parse_displayid.py', '.'), ('parse_standard.py', '.'), ('validator.py', '.'), ('vic_to_resolution.py', '.'), ('vic.py', '.'), ('embedded_fonts.py', '.')],
+    datas=[('edid_main.py', '.'), ('datatypes.py', '.'), ('monitor_info.py', '.'), ('block_map_classify.py', '.'), ('parser', 'parser'), ('validator.py', '.'), ('vic_data', 'vic_data'), ('fonts/embedded_fonts.py', 'fonts')],
     hiddenimports=['PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets'],
     hookspath=[],
     hooksconfig={},
@@ -36,5 +36,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     uac_admin=True,
-    icon=['C:\\Users\\px1903\\Desktop\\自製工具\\EDIDREADER_250523\\branch.ico'],
+    icon=['C:\\Users\\px1903\\Desktop\\自製工具\\EDIDREADER_250523\\icon\\branch.ico'],
 )
