@@ -21,44 +21,47 @@ EDID 解析器
 ## 介面
 
 應用程式圖示
+<!-- markdownlint-disable MD033 -->
 
-![alt text](/picture/image.png)
+<img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image.png" alt="alt text" width="120">
 
 執行介面(日間模式)
 
-![alt text](/picture/image-1.png)
+<img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_1.png" alt="alt text" width="600">
 
 執行介面(夜間模式)
-![alt text](/picture/image-2.png)
+
+<img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_2.png" alt="alt text" width="600">
 
 ## How to use
 
 1. 先打開應用程式，他會先顯示你現在的螢幕資訊
 
-    ![alt text](/picture/image-4.png)
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_4.png" alt="alt text" width="600">
 
 2. 將顯示器插入電腦的HDMI或DP介面
 
 3. 按下`重新整理顯示器資訊`按鈕
 
     你會看到內容更新，順序應該是依照註冊表的排序
-    ![alt text](/picture/image-5.png)
+
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_5.png" alt="alt text" width="600">
 
 4. 右上方會顯示目前的顯示器數量
 
-    ![alt text](/picture/image-6.png)
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_6.png" alt="alt text" width="300">
 
 5. 按下`匯出資訊`按鈕
 
     你將可以匯出目前所有顯示器資訊
     * txt 主要拿來編輯，html 是提供給其他人檢視
-    ![alt text](/picture/image-7.png)
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_7.png" alt="alt text" width="600">
 
     * 匯出樣式(*.txt)
-    ![alt text](/picture/image-8.png)
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_8.png" alt="alt text" width="600">
 
     * 匯出樣式(*.html)
-    ![alt text](/picture/image-9.png)
+    <img src="https://raw.githubusercontent.com/Ken-Huang-PX/edid_parser_image/main/image_9.png" alt="alt text" width="600">
 
 ## EDID 簡介(不熟悉EDID的請看這)
 

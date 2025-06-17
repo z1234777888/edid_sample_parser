@@ -2,7 +2,7 @@ import base64
 import os
 
 
-def convert_image_to_base64(image_path, output_file="icon_data.py"):
+def convert_image_to_base64(image_path: str, output_file: str = "icon_data.py"):
     """
     將圖片檔案轉換為 Base64 編碼的 Python 程式碼
 
