@@ -372,7 +372,7 @@ class ParseAudioTag:
 
             AudioParams.audio_format = AudioParams.FORMAT_CODE[code]
 
-            result = f"{AudioParams.audio_format:7} [{' '.join(map(str, AudioParams.supported_frequencies)) }]kHz, {max_channels} channels"
+            result += f"{AudioParams.audio_format:7} [{' '.join(map(str, AudioParams.supported_frequencies)) }]kHz, {max_channels} channels"
             # 解析位元深度
             if AudioParams.audio_format == "L-PCM":  # L-PCM
                 ParseAudioTag._parse_lpcm_bit_depths(descriptor_data)
@@ -389,9 +389,9 @@ class ParseAudioTag:
                 else:
                     AudioParams.wma_profile_code = f"profile error"
                 result += f", {AudioParams.wma_profile_code}"
-            print(result)
+            result += "\n"
             current_offset += 3
-
+        print(result)
         print(f"{'='*10} audio data block parse ended {'='*10}")
         return {"descriptor": result}
 
