@@ -52,7 +52,7 @@
 
 | 區塊類型 | 標識符 | 說明 |
 |---------|--------|------|
-| **Standard Block** | `00 FF FF FF FF FF FF FF 00` | EDID基本資訊區塊（必須為首個區塊） |
+| **Standard Block** | `00 FF FF FF FF FF FF 00` | EDID基本資訊區塊（必須為首個區塊） |
 | **CTA Extension** | `02 03` | CTA-861擴展區塊 |
 | **Display ID** | `70` | DisplayID格式區塊 |
 | **Block Map** | `F0` | 區塊映射（解析後跳過該區塊） |
