@@ -36,5 +36,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     uac_admin=True,
-    icon=['C:\\Users\\px1903\\Desktop\\自製工具\\EDIDREADER_250523\\icon\\branch.ico'],
+    icon=['C:\\Users\\px1903\\Desktop\\自製應用程式\\EDID\\Simple_Parser\\icon\\branch.ico'],
 )

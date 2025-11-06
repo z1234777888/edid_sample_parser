@@ -499,13 +499,14 @@ class ParseSpeakerBlock:
 
         current_offset = offset
         speaker_data = block[current_offset : current_offset + length]
-        for bit_position in range(8):
+
+        for bit_position in range(length):
             if speaker_data[0] & (1 << bit_position):
                 info += f" - {SpeakerAllocation.speaker_config1[bit_position]}"
 
-        for bit_position in range(4):
-            if speaker_data[1] & (1 << bit_position):
-                info += f" - {SpeakerAllocation.speaker_config2[bit_position]}"
+        # for bit_position in range(4):
+        #     if speaker_data[1] & (1 << bit_position):
+        #         info += f" - {SpeakerAllocation.speaker_config2[bit_position]}"
         print(f"Speaker Configuration: {info}")
 
         print(f"{'='*10} speaker data block parse ended {'='*10}")
