@@ -136,3 +136,18 @@ class StandardValidator:
             print("should be", expected_checksum)
             print("but got", actual_checksum)
             return False
+
+    @staticmethod
+    def dtd_offset(edid_data: bytes, dtd_offset: int) -> bool:
+        if edid_data[0x00] != 0x02 and edid_data[0x01] != 0x03:
+            return False
+
+        original_offset = edid_data[0x02]
+        if original_offset == dtd_offset:
+            print("dtd offset 正確")
+            return True
+        else:
+            print("dtd offset 錯誤")
+            print("should be", original_offset)
+            print("but got", dtd_offset)
+            return False

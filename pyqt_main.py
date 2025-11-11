@@ -367,7 +367,12 @@ class MainWindow(QMainWindow):
             {
                 "start": "========== checksum parse started ==========",
                 "end": "========== checksum parse ended ==========",
-                "title": "Checksum",
+                "title": "CheckSum",
+            },
+            {
+                "start": "========== DTD Offset Check parse started ==========",
+                "end": "========== DTD Offset Check parse ended ==========",
+                "title": "DTD Offset 檢查",
             },
             {
                 "start": "========== edid raw data parse started ==========",
@@ -776,7 +781,14 @@ class MainWindow(QMainWindow):
                 formatted_text += (
                     "========== Extension Block Count parse ended ==========\n\n"
                 )
-
+            if "check_dtd_offset" in data:
+                formatted_text += (
+                    "========== DTD Offset Check parse started ==========\n"
+                )
+                formatted_text += f"{data['check_dtd_offset']}\n"
+                formatted_text += (
+                    "========== DTD Offset Check parse ended ==========\n\n"
+                )
             formatted_text = self.add_titles(formatted_text)
             formatted_text = self.remove_empty_blocks(formatted_text)
             formatted_text = self.remove_start_end_lines_specific(formatted_text)

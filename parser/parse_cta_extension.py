@@ -30,7 +30,7 @@ class ParseCTATagCode:
     """解析CTA Data Block的Tag Code，目前只解析video、speaker與audio"""
 
     @staticmethod
-    def parse_manager(block: bytes) -> list[dict[str, str]]:
+    def parse_manager(block: bytes) -> tuple[list[dict[str, str]], int]:
         info: dict[str, str] = {}
         result: list[dict[str, str]] = []
         dtd_addr = block[2]
@@ -42,6 +42,14 @@ class ParseCTATagCode:
             # print(
             #     f"Tag Code: {tag_code},current_offset: {current_offset}, Length: {length}"
             # )
+
+            # print(
+            #     " ".join(
+            #         f"{byte:02x}"
+            #         for byte in block[current_offset : current_offset + length + 1]
+            #     )
+            # )
+
             # 更新offset，跳過header位元
             current_offset = current_offset + header_offset
 
@@ -64,10 +72,11 @@ class ParseCTATagCode:
                     info = ParseVSDBBlock.parse_manager(block, current_offset, length)
                 case _:
                     pass
+
             result.append(info)
             current_offset += length  # 更新offset
 
-        return result
+        return result, current_offset
 
 
 class YCbCr420CapParams:
@@ -494,19 +503,20 @@ class ParseSpeakerBlock:
     def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析聲道配置的tag code"""
         info: str = ""
+        if length == 0:
+            return {"descriptor": ""}
         print()
         print(f"{'='*10} speaker data block parse started {'='*10}")
 
         current_offset = offset
         speaker_data = block[current_offset : current_offset + length]
-
-        for bit_position in range(length):
+        for bit_position in range(8):
             if speaker_data[0] & (1 << bit_position):
-                info += f" - {SpeakerAllocation.speaker_config1[bit_position]}"
+                info += f" - {SpeakerAllocation.speaker_config1.get(bit_position)}"
 
-        # for bit_position in range(4):
-        #     if speaker_data[1] & (1 << bit_position):
-        #         info += f" - {SpeakerAllocation.speaker_config2[bit_position]}"
+        for bit_position in range(4):
+            if speaker_data[1] & (1 << bit_position):
+                info += f" - {SpeakerAllocation.speaker_config2.get(bit_position)}"
         print(f"Speaker Configuration: {info}")
 
         print(f"{'='*10} speaker data block parse ended {'='*10}")

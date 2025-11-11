@@ -82,11 +82,16 @@ class ParseCTABlock:
         # 先解析tag code
         # block = test_block
         dtd_addr = block[2]
-        tag_code_info = ParseCTATagCode.parse_manager(block)
+        tag_code_info, now_dtd_offset = ParseCTATagCode.parse_manager(block)
+
         # DTD 解析，只有CTA擴展區才需要額外宣告offset
         DTD_info: DTDInfoData = DTDInfo.parse_manager(block, start_addr=dtd_addr)
 
-        result: CTABlockResult = {"TagCodeInfo": tag_code_info, "DTDInfo": DTD_info}
+        result: CTABlockResult = {
+            "TagCodeInfo": tag_code_info,
+            "DTDInfo": DTD_info,
+            "dtd_offset": now_dtd_offset,
+        }
         return result
 
 

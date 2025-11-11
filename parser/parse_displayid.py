@@ -16,8 +16,8 @@ class ParseDPBlock:
     def parse_manager(block: bytes) -> list[str]:
         result: list[str] = []
         version = block[1:2].hex()
-        print(f"Version: {version}")
         print()
+        print(f"Display ID Version: {version}")
         print(f"{'='*10}display id parse started{'='*10}")
         current_offset = 5
         timing_tag = block[current_offset]

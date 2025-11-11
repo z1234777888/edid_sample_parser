@@ -44,6 +44,7 @@ class StandardBlockResult(TypedDict, total=False):
 class CTABlockResult(TypedDict):
     TagCodeInfo: list[dict[str, str]]
     DTDInfo: DTDInfoData
+    dtd_offset: int
 
 
 class DisplayIDBlockResult(TypedDict):
@@ -57,3 +58,4 @@ class TotalResult(TypedDict, total=False):
     EDIDRawData: str
     Checksum: list[str]
     ExtensionNum: str
+    check_dtd_offset: str

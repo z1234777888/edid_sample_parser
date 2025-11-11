@@ -389,6 +389,17 @@ class DTDInfo:
             DTDParams.EDID_BLOCK_SIZE - current_addr
         ) // DTDParams.DESCRIPTOR_SIZE
         print()
+        # for i in range(dtd_len):
+        #     print(
+        #         " ".join(
+        #             f"{byte:02x}"
+        #             for byte in block[
+        #                 current_addr
+        #                 + i * DTDParams.DESCRIPTOR_SIZE : current_addr
+        #                 + (i + 1) * DTDParams.DESCRIPTOR_SIZE
+        #             ]
+        #         )
+        #     )
         print(f"{'='*10}DTD or Display Descriptor parse started{'='*10}")
         # 在base EDID處理perferred timing的解析
         if block[:8] == bytes([0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]):
@@ -475,6 +486,9 @@ class DTDInfo:
         block: bytes, offset: int = DTDParams.FIRST_DESCRIPTOR_ADDR
     ) -> tuple[int, int]:
         """解析時序解析度，暫時只解析必要的內容"""
+        if block[offset + 17] == 0:
+            print("dtd offset error")
+
         _clock = block[offset + 1] << 8 | block[offset]
         pixel_clock = _clock / 100.0  # MHz
         # 水平參數

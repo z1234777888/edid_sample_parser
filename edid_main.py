@@ -54,7 +54,17 @@ def EDID_parse_manager(raw_data: bytes) -> TotalResult:
         elif key == BlockType.CTA_EXTENSION:
             cta_extension_block = value
             result["CTABlockInfo"] = cta.parse(cta_extension_block)
-
+            result["check_dtd_offset"] = (
+                "DTD 偏移位址正確"
+                if result["CTABlockInfo"]["dtd_offset"] == int.from_bytes(value[2:3])
+                else "DTD 偏移位址錯誤，應該為 "
+                + f"{value[2:3].hex()}"
+                + "實際為 "
+                + f"{result['CTABlockInfo']['dtd_offset']:02x}"
+            )
+            print(
+                "dtd_offset 正確" if result["check_dtd_offset"] else "dtd_offset 錯誤"
+            )
         elif key == BlockType.DISPLAY_ID:
             display_id_block = value
             result["DisplayIDBlockInfo"] = dpid.parse(display_id_block)
@@ -66,6 +76,7 @@ def EDID_parse_manager(raw_data: bytes) -> TotalResult:
     result["Checksum"] = [
         "Checksum 正確" if x else "Checksum 錯誤" for x in check_sum_result
     ]
+
     result["ExtensionNum"] = (
         "擴展數正確" if StandardValidator.extension_num(raw_data) else "擴展數錯誤"
     )
