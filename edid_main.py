@@ -105,6 +105,9 @@ def main() -> list[TotalResult]:
         if raw_data is None:
             continue
 
+        # raw_data = "00 FF FF FF FF FF FF 00 09 D1 ED 7F FF FF FF FF FF FF 01 03 80 36 1E 78 2A CD 35 AF 4E 3E B2 27 0F 50 54 A5 6B 80 D1 C0 81 C0 81 00 81 80 A9 C0 B3 00 81 BC 01 01 02 3A 80 18 71 38 2D 40 58 2C 45 00 18 2A 21 00 00 1E 00 00 00 FF 00 30 30 30 30 30 30 30 30 30 30 53 4C 30 00 00 00 FD 0A 18 FF 1E F3 AB 00 0A 20 20 20 20 20 20 00 00 00 FC 00 58 4C 32 35 38 36 58 2B 0A 20 20 20 20 01 3B 02 03 4B F1 E2 78 02 4F 90 05 04 03 02 01 12 11 13 3F 07 06 1F 20 40 E2 00 CF 23 09 07 07 83 01 00 00 67 03 0C 00 30 00 00 44 6D D8 5D C4 01 78 80 40 02 00 00 81 44 15 72 1A 00 00 03 01 3C F0 E6 00 00 00 00 00 58 02 00 00 00 B4 91 00 A0 50 C0 78 30 30 20 35 00 18 2A 21 00 00 1A 0C DF 80 A0 70 38 40 40 30 40 35 00 18 2A 21 00 00 1A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 B0"
+        # raw_data = raw_data.replace(" ", "")
+        # raw_data = bytes.fromhex(raw_data)
         EDID_info = EDID_parse_manager(raw_data)
         EDID_info["EDIDRawData"] = format_bytes(raw_data)
         EDID_info_list.append(EDID_info)

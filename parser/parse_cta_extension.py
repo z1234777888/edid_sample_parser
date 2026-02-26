@@ -389,9 +389,10 @@ class ParseAudioTag:
             elif code >= 2 and code <= 8:
                 AudioParams.bit_rate = f"{(descriptor_data[2] * 8)}kHz"
                 result += f", {AudioParams.bit_rate}"
-            elif code >= 9 and code <= 13:
-                AudioParams.audio_spec = f"{descriptor_data[2] }"
-                result += f", {AudioParams.audio_spec}"
+            # # 需查閱audio protocl
+            # elif code >= 9 and code <= 13:
+            #     AudioParams.audio_spec = f"{descriptor_data[2] }"
+            #     result += f", {AudioParams.audio_spec}"
             elif code == 14:
                 if descriptor_data[2] & 0xF8:
                     AudioParams.wma_profile_code = f"profile error"
@@ -503,6 +504,7 @@ class ParseSpeakerBlock:
     def parse_manager(block: bytes, offset: int, length: int) -> dict[str, str]:
         """解析聲道配置的tag code"""
         info: str = ""
+        channel_count = 0
         if length == 0:
             return {"descriptor": ""}
         print()
@@ -513,11 +515,27 @@ class ParseSpeakerBlock:
         for bit_position in range(8):
             if speaker_data[0] & (1 << bit_position):
                 info += f" - {SpeakerAllocation.speaker_config1.get(bit_position)}"
+                if (
+                    bit_position == 0
+                    or bit_position == 3
+                    or bit_position == 5
+                    or bit_position == 6
+                    or bit_position == 7
+                ):
+                    channel_count += 2
+                else:
+                    channel_count += 1
 
         for bit_position in range(4):
             if speaker_data[1] & (1 << bit_position):
                 info += f" - {SpeakerAllocation.speaker_config2.get(bit_position)}"
+                if bit_position == 0 or bit_position == 2 or bit_position == 4:
+                    channel_count += 2
+                else:
+                    channel_count += 1
+
         print(f"Speaker Configuration: {info}")
+        print(f"Total Channels: {channel_count} CH")
 
         print(f"{'='*10} speaker data block parse ended {'='*10}")
-        return {"descriptor": info}
+        return {"descriptor": info, "speaker_channel_count": f"{channel_count} CH"}

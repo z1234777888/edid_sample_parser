@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from datetime import datetime
 
-from PyQt6.QtWidgets import QLabel, QPushButton, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QLabel, QPushButton, QFileDialog, QMessageBox, QComboBox
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QTextCursor
 
@@ -27,9 +27,9 @@ from fonts.embedded_fonts import load_embedded_fonts
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.last_info_type_selection = "完整檢視"  # 保存下拉選單狀態或首次狀態
+        self.last_info_type_selection = "摘要"  # 保存下拉選單狀態或首次狀態
         self.is_dark_mode = False
-
+        self.full_text = ""
         self.parsed_data_list: list[TotalResult] = []
         self.separator_lines = False
         self.themes = {
@@ -163,12 +163,20 @@ class MainWindow(QMainWindow):
         self.theme_btn = QPushButton("切換夜間模式")
 
         self.labels = [font_label, self.font_size_label, self.monitor_count_label]
+        self.info_type = QComboBox()
+        self.info_type.addItems(
+            [
+                "摘要",
+                "完整檢視",
+            ]
+        )
 
         # Add controls to toolbar
         toolbar.addWidget(font_label)
         toolbar.addWidget(self.decrease_btn)
         toolbar.addWidget(self.font_size_label)
         toolbar.addWidget(self.increase_btn)
+        toolbar.addWidget(self.info_type)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(self.export_btn)
         toolbar.addWidget(self.monitor_count_label)
@@ -193,9 +201,173 @@ class MainWindow(QMainWindow):
         self.refresh_btn.clicked.connect(self.refresh_monitor_info)  # type: ignore
         self.export_btn.clicked.connect(self.export_info)  # type: ignore
         self.theme_btn.clicked.connect(self.toggle_theme)  # type: ignore
+        self.info_type.currentTextChanged.connect(self.on_info_type_changed)
 
         # Initial refresh
         self.refresh_monitor_info()
+
+    def generate_summary(self, full_text: str) -> str:
+        # 用分隔標題切割多組顯示器資料
+        sections = re.split(r"(?=={18}第\d+個顯示器資訊={18})", full_text)
+        sections = [s for s in sections if s.strip()]  # 移除空白區段
+
+        all_summaries: List[str] = []
+        for section in sections:
+            # 取得第N個顯示器的標題
+            title_match = re.search(r"={18}(第\d+個顯示器資訊)={18}", section)
+            title = title_match.group(1) if title_match else "顯示器資訊"
+
+            summary = self._generate_single_summary(section)
+            all_summaries.append(f"{'='*18}{title}{'='*18}\n{summary}")
+
+        return "\n\n".join(all_summaries)
+
+    def _generate_single_summary(self, full_text: str) -> str:
+        """單一顯示器的摘要生成"""
+
+        lines: List[str] = []
+        text = ""
+        # 1. 廠牌名稱
+        # 廠商 ID 查表，以台灣常見品牌為主，其他則顯示原始 ID
+        MANUFACTURER_MAP = {
+            "SNY": "Sony",
+            "SON": "Sony",
+            "SER": "Sony",
+            "SAM": "Samsung",
+            "SDC": "Samsung",
+            "SKT": "Samsung",
+            "SSE": "Samsung",
+            "STN": "Samsung",
+            "KYK": "Samsung",
+            "SEM": "Samsung",
+            "DEL": "DELL",
+            "DLL": "DELL",
+            "AUS": "ASUS",
+            "ASU": "ASUS",
+            "ACI": "ASUS",
+            "GBT": "Gigabyte",
+            "BNQ": "BenQ",
+            "MDO": "Panasonic",
+            "PLF": "Panasonic",
+            "MAT": "Panasonic",
+            "MEI": "Panasonic",
+            "VSC": "ViewSonic",
+            "PCA": "Philips",
+            "PHS": "Philips",
+            "PHL": "Philips",
+            "PHE": "Philips",
+            "PSC": "Philips",
+            "CHE": "Acer",
+            "ALI": "Acer",
+            "ANX": "Acer",
+            "ACR": "Acer",
+            "CND": "MSI",
+            "LGD": "LG",
+            "GSM": "LG",
+            "RZR": "Razer",
+            "HPN": "HP",
+            "AOC": "AOC",
+        }
+        # lines.append("【廠牌名稱】")
+        match = re.search(r"製造商ID\s+([A-Z]{3})", full_text)
+        if match:
+            manufacturer_id = match.group(1)
+            manufacturer_name = MANUFACTURER_MAP.get(
+                manufacturer_id, manufacturer_id
+            )  # 查不到就顯示原始ID
+            text = f"{manufacturer_name} ({manufacturer_id})"
+        else:
+            text = "-"
+        lines.append(f"製造商: {text}")
+        # 2. 顯示器名稱
+        # lines.append("\n【顯示器名稱】")
+        match = re.search(r"產品名稱[:：]\s*(.+)", full_text)
+        if match:
+            text = match.group(1).strip()
+        else:
+            text = "-"
+        lines.append(f"產品名稱: {text}")
+
+        # 3. 解析度支援
+        resolution_map = {
+            "3840x2160": "3840x2160",
+            "2560x1440": "2560x1440",
+            "1920x1080": "1920x1080",
+        }
+        supported_resolutions = [
+            label for keyword, label in resolution_map.items() if keyword in full_text
+        ]
+        # lines.append("【解析度支援】")
+        if supported_resolutions:
+            text = ", ".join(supported_resolutions)
+        else:
+            text = "-"
+        lines.append(f"解析度支援: {text}")
+
+        # 4. 音訊格式支援
+        audio_map = {
+            "L-PCM": "PCM",
+            "AC-3": "Dolby Audio",
+            "DTS": "DTS",
+        }
+        supported_audio = [
+            label for keyword, label in audio_map.items() if keyword in full_text
+        ]
+        # lines.append("\n【音訊格式支援】")
+        if supported_audio:
+            text = ", ".join(supported_audio)
+        else:
+            text = "-"
+        lines.append(f"音訊格式支援: {text}")
+
+        speaker_map = {
+            "2 CH": "2 CH",
+            "3 CH": "2.1 CH",
+            "4 CH": "4 CH",
+            "5 CH": "5 CH",
+            "6 CH": "5.1 CH",
+            "7 CH": "6.1 CH",
+            "8 CH": "7.1 CH",
+        }
+        supported_speaker = [
+            label for keyword, label in speaker_map.items() if keyword in full_text
+        ]
+        # lines.append("\n【喇叭數量】")
+        if supported_speaker:
+            text = ", ".join(supported_speaker)
+        else:
+            text = "-"
+        lines.append(f"喇叭數量: {text}")
+        # 5. 最大畫面更新率
+        # lines.append("\n【最大畫面更新率】")
+        match = re.search(r"最大垂直更新率[:：]\s*(\d+)\s*Hz", full_text)
+        if match:
+            text = f"{match.group(1)} Hz"
+        else:
+            text = "-"
+        lines.append(f"最大更新率: {text}")
+
+        lines.append("\nEDID 原始資料")
+        match = re.search(r"【EDID Raw Data】\n(.*?)(?=【)", full_text, re.DOTALL)
+        if match:
+            lines.append(match.group(1).strip())
+        else:
+            lines.append("-")
+
+        return "\n".join(lines)
+
+    def on_info_type_changed(self, selected_type: str):
+        """處理資訊類型改變事件"""
+        self.last_info_type_selection = selected_type
+
+        # 每次切換都重新從原始資料渲染，避免狀態混亂
+        if selected_type == "完整檢視":
+            self.text_display.setPlainText(self.full_text)
+        elif selected_type == "摘要":
+            summary = self.generate_summary(self.full_text)
+            self.text_display.setPlainText(summary)
+        else:
+            self.text_display.setPlainText(self.full_text)
 
     def decrease_font_size(self):
         self.adjust_font_size(-2)
@@ -691,6 +863,11 @@ class MainWindow(QMainWindow):
                         formatted_text += (
                             f"Speaker Configuration: {tag['descriptor']}\n"
                         )
+
+                        if "speaker_channel_count" in tag:
+                            formatted_text += (
+                                f"Total Channels: {tag['speaker_channel_count']}\n"
+                            )
                         break
                 formatted_text += (
                     "========== speaker data block parse ended ==========\n\n"
@@ -800,19 +977,28 @@ class MainWindow(QMainWindow):
 
     def update_display(self):
         """更新顯示內容基於選擇的資訊類型"""
+        combined_full_text = ""
+
         for index in range(len(self.parsed_data_list)):
             self.parsed_data = self.parsed_data_list[index]
             if self.parsed_data:
-
-                content = self.format_edid_data(self.parsed_data)
-                self.text_display.append(f"{'='*18}第{index+1}個顯示器資訊{'='*18}")
-                self.text_display.append(content)
-                self.monitor_count_label.setText(f"目前顯示器數量: {index+1}")
+                section = f"{'='*18}第{index+1}個顯示器資訊{'='*18}\n"
+                section += self.format_edid_data(self.parsed_data)
+                combined_full_text += section + "\n"
             else:
-                self.text_display.clear()
-                self.text_display.append("無法讀取顯示器資訊，請確認顯示器連接正常")
+                combined_full_text += f"{'='*18}第{index+1}個顯示器資訊{'='*18}\n無法讀取顯示器資訊，請確認顯示器連接正常\n\n"
 
-        # 更新完內容移動游標到內容的開頭
+        self.monitor_count_label.setText(
+            f"目前顯示器數量: {len(self.parsed_data_list)}"
+        )
+
+        if combined_full_text:
+            self.full_text = combined_full_text
+            self.on_info_type_changed(self.info_type.currentText())
+        else:
+            self.text_display.clear()
+            self.text_display.append("無法讀取顯示器資訊，請確認顯示器連接正常")
+
         self.text_display.moveCursor(QTextCursor.MoveOperation.Start)
 
     def refresh_monitor_info(self):

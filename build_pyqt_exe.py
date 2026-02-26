@@ -13,7 +13,7 @@ def create_exe_with_better_optimization():
         "--onefile",
         "--noconsole",
         "--clean",
-        "--name=EDID解析器 v1.1.0",
+        "--name=EDID解析器 v2.0.0",
         "--icon=" + icon_path,
         # 加入所有相關的 Python 檔案
         "--add-data=edid_main.py;.",
