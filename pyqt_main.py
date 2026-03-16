@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
                     color: #000000;
                     border: 1px solid #CCCCCC;
                     padding: 5px;
-                    outline: none;
+                    border-radius: 3px;
                 }
                 QPushButton:hover {
                     background-color: #E0E0E0;
@@ -60,6 +60,26 @@ class MainWindow(QMainWindow):
                     background-color: #FFFFFF;
                     color: #000000;
                     border: 1px solid #CCCCCC;
+                    padding: 5px;
+                    border-radius: 3px;
+                }
+                /* 下拉箭頭區域 */
+                QComboBox::drop-down {
+                    border: none;
+                    width: 20px;
+                }
+                /* 下拉選單的整體容器 */
+                QComboBox QAbstractItemView {
+                    background-color: #FFFFFF;   /* 選單背景色 */
+                    color: #000000;              /* 文字顏色 */
+                    border: 1px solid #CCCCCC;
+                    selection-background-color: #07c7ed;  /* 選中項目的背景色 */
+                    selection-color: #FFFFFF;             /* 選中項目的文字色 */
+                    outline: none;
+                }
+                QComboBox QAbstractItemView::item:hover {
+                    background-color: #e0f7fa;
+                    color: #000000;
                 }
                 QTextEdit {
                     background-color: #F5F5F5;
@@ -73,6 +93,30 @@ class MainWindow(QMainWindow):
                     border: 1px solid #CCCCCC;
                     font-family: Inconsolata semiexpanded;
                 }
+                QCheckBox {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                QCheckBox::indicator {
+                    width: 16px;
+                    height: 16px;
+                    border: 1px solid #888;
+                    border-radius: 1px;
+                    background-color: #444;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #07c7ed;
+                    border-color: #000000;
+                }
+                QCheckBox::indicator:unchecked {
+                    width: 16px;
+                    height: 16px;
+                    background-color: #DEDEDE;
+                }
+                QCheckBox::indicator:hover {
+                    border-color: #aaa;
+                }
+                
             """,
             "dark": """
                 QMainWindow {
@@ -88,7 +132,7 @@ class MainWindow(QMainWindow):
                     color: #FFFFFF;
                     border: 1px solid #555555;
                     padding: 5px;
-                    outline: none;
+                    border-radius: 3px;
                 }
                 QPushButton:hover {
                     background-color: #4D4D4D;
@@ -101,7 +145,27 @@ class MainWindow(QMainWindow):
                     background-color: #2D2D2D;
                     color: #FFFFFF;
                     border: 1px solid #3D3D3D;
+                    padding: 5px;
+                    border-radius: 3px;
                 }
+                /* 下拉箭頭區域 */
+                QComboBox::drop-down {
+                    border: none;
+                    width: 20px;
+                }
+                /* 下拉選單的整體容器 */
+                QComboBox QAbstractItemView {
+                    background-color: #2D2D2D;   /* 選單背景色 */
+                    color: #FFFFFF;              /* 文字顏色 */
+                    border: 1px solid #3D3D3D;
+                    selection-background-color: #07c7ed;  /* 選中項目的背景色 */
+                    selection-color: #FFFFFF;             /* 選中項目的文字色 */
+                    outline: none;
+                }
+                QComboBox QAbstractItemView::item:hover {
+                    background-color: #e0f7fa;
+                    color: #000000;
+                }                
                 QTextEdit {
                     background-color: #2D2D2D;
                     color: #58c2e5;
@@ -114,6 +178,23 @@ class MainWindow(QMainWindow):
                     border: 1px solid #2D2D2D;
                     font-family: Inconsolata semiexpanded;
                 }
+                QCheckBox {
+                    background-color: #1E1E1E;
+                    color: #FFFFFF;
+                }
+                QCheckBox::indicator:checked {
+                    width: 16px;
+                    height: 16px;
+                    background-color: #ffb514;
+                    border-color: #000000;
+                }
+                QCheckBox::indicator:unchecked {
+                    width: 16px;
+                    height: 16px;
+                    background-color: #DEDEDE;
+                }      
+
+                         
             """,
         }
 
